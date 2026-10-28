@@ -3,7 +3,7 @@
 VT PARTNERS Admin의 **공간 등록(미니맵 + 층 구분)** 플로우를 UX 법칙(제이콥·힉·피츠·점진적 공개·밀러)과 WCAG 2.1 AA 기준으로 리뷰하고, 개선안을 동작하는 HTML 프로토타입으로 만들었습니다.
 
 - 리뷰 대상: Figma 시안 `460:1532` (공간 유형 / 공간 규모 화면 2종), 운영 중인 `vtpartners.co/space`, `/space-create`, `/space/:id` (읽기만 함, 데이터 변경 없음)
-- 프로토타입: [`index.html`](index.html) — 브라우저에서 바로 열면 됩니다 (빌드 없음, 단일 파일)
+- 프로토타입: **https://seundyuu.github.io/space-registration-redesign/** (소스: [`index.html`](index.html), 빌드 없음)
 
 ```bash
 python3 -m http.server 5173

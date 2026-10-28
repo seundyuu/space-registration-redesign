@@ -158,6 +158,44 @@ fieldset { border: 0; margin: 0; padding: 0; min-width: 0; }
 .title-edit.empty { border: 1px dashed var(--input); }
 .title-edit.invalid { border: 1px solid var(--destructive); }
 .title-hint { margin: 4px 24px 0; }
+/* 지도 작업공간: 왼쪽 지도(스크롤해도 고정) + 오른쪽 사진 목록 */
+.ws { display: grid; grid-template-columns: minmax(0, 1.5fr) minmax(300px, 1fr); gap: 24px; align-items: start; }
+.ws-map { position: sticky; top: 16px; }
+.ws-list { display: flex; flex-direction: column; gap: 8px; max-height: 560px; overflow-y: auto; padding-right: 4px; }
+.ws-list-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.ws-list-head h3 { margin: 0; }
+.ws-list p { margin: 0; }
+.sel-guide { color: var(--accent); font-weight: 600; }
+.rows { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
+.row { display: flex; align-items: center; gap: 10px; padding: 8px; border: 1px solid var(--border); border-radius: var(--radius-lg); background: var(--background); }
+.row[aria-current="true"] { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); background: var(--accent-bg); }
+.row-th { width: 44px; height: 44px; border-radius: 8px; flex: none; position: relative; }
+.row-th b { position: absolute; left: 4px; top: 4px; min-width: 20px; height: 20px; padding: 0 5px; border-radius: 99px; background: rgba(10,10,10,.8); color: #fff; font-size: 12px; display: grid; place-items: center; }
+.row-main { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.row-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ok-text { color: var(--accent); font-weight: 600; }
+.row-btn { height: 36px; padding: 0 12px; flex: none; }
+.row-del { color: var(--muted-foreground); }
+.row-del:hover { color: var(--destructive); }
+.group-h { margin: 8px 0 0; }
+/* 키보드로 위치를 고를 때 보이는 십자선 */
+.cross { position: absolute; width: 28px; height: 28px; transform: translate(-50%, -50%); border: 2px solid var(--accent); border-radius: 99px; background: rgba(47,107,255,.15); pointer-events: none; }
+.cross::before, .cross::after { content: ""; position: absolute; background: var(--accent); }
+.cross::before { left: 50%; top: -8px; bottom: -8px; width: 2px; transform: translateX(-50%); }
+.cross::after { top: 50%; left: -8px; right: -8px; height: 2px; transform: translateY(-50%); }
+.floorplan:not(:focus-visible) .cross { opacity: .5; }
+/* 직접 찍은 핀은 속이 빈 원, GPS로 찍힌 핀은 채운 원 — 색 외에 모양으로도 구분 */
+.pin.manual b { background: #fff; color: var(--accent); box-shadow: inset 0 0 0 2px var(--accent), 0 0 0 3px rgba(47,107,255,.2); }
+.map-legend { display: flex; gap: 14px; flex-wrap: wrap; align-items: center; margin-top: 8px; }
+.map-legend i { display: inline-block; width: 12px; height: 12px; border-radius: 99px; vertical-align: -1px; margin-right: 4px; }
+/* shadcn DropdownMenu */
+.menu-wrap { position: relative; }
+.menu { position: absolute; right: 0; top: calc(100% + 4px); z-index: 20; min-width: 168px; padding: 4px; background: var(--background); border: 1px solid var(--border); border-radius: var(--radius-md); box-shadow: 0 4px 12px rgba(0,0,0,.1); display: flex; flex-direction: column; }
+.menu [role="menuitem"] { height: 36px; padding: 0 8px; border: 0; background: none; border-radius: 4px; text-align: left; font-size: 14px; cursor: pointer; }
+.menu [role="menuitem"]:hover, .menu [role="menuitem"]:focus-visible { background: var(--secondary); outline: none; }
+.menu [role="menuitem"][aria-disabled="true"] { color: var(--muted-foreground); cursor: not-allowed; }
+.menu .danger { color: var(--destructive); }
+.menu-sep { height: 1px; background: var(--border); margin: 4px -4px; }
 .src-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 16px; }
 .src-card { display: flex; flex-direction: column; align-items: flex-start; gap: 8px; text-align: left; padding: 24px; border: 1px solid var(--border); border-radius: var(--radius-lg); background: var(--background); cursor: pointer; }
 .src-card:hover { border-color: var(--foreground); }
@@ -201,16 +239,12 @@ fieldset { border: 0; margin: 0; padding: 0; min-width: 0; }
 .drop { border: 1px dashed var(--semantic-border); border-radius: var(--radius-lg); background: var(--sidebar); padding: 32px 20px; text-align: center; display: flex; flex-direction: column; align-items: center; gap: 4px; }
 .drop p { margin: 0 0 12px; }
 
-.mapwrap { display: grid; grid-template-columns: minmax(0, 520px) minmax(180px, 1fr); gap: 24px; }
 .floorplan { position: relative; aspect-ratio: 16 / 10; max-width: 100%; border: 1px solid var(--border); border-radius: var(--radius-md); background: var(--illust-bg); overflow: hidden; cursor: crosshair; }
 .floorplan svg { width: 100%; height: 100%; display: block; }
 .floorplan.idle { cursor: default; }
 .pin { position: absolute; transform: translate(-50%, -50%); display: flex; align-items: center; gap: 4px; pointer-events: none; }
 .pin b { width: 22px; height: 22px; border-radius: 99px; background: var(--accent); color: #fff; font-size: 12px; display: grid; place-items: center; box-shadow: 0 0 0 3px rgba(47,107,255,.2); }
 .pin span { font-size: 12px; font-weight: 600; background: #fff; border: 1px solid var(--border); border-radius: 6px; padding: 1px 6px; white-space: nowrap; }
-.pinlist h3 { margin: 0 0 8px; }
-.pinlist ol { margin: 8px 0 0; padding-left: 18px; }
-.pinlist p { margin: 0; }
 
 .grid { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 12px; }
 .group-h { margin: 16px 0 8px; font-size: 12px; line-height: 16px; font-weight: 600; color: var(--muted-foreground); }
@@ -280,7 +314,9 @@ dialog p { margin: 0 0 16px; color: var(--muted-foreground); }
   .stepform.body { padding: 20px 16px 120px; }
   .actionbar { padding: 12px 16px; }
   .actionbar .msg { display: none; }
-  .mapwrap { grid-template-columns: 1fr; }
+  .ws { grid-template-columns: 1fr; }
+  .ws-map { position: static; }
+  .ws-list { max-height: none; }
   .type-card { width: 100%; }
 }
 @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
@@ -340,7 +376,7 @@ const SKY = [['#9cc8f0','#d9c8a6'],['#a9d2f2','#7f9a6a'],['#c3d9ef','#a07d5e'],[
 const NAMES = ['입구', '초입부', '카페 앞', '카페 내부', '테라스', '바베큐장', '캠핑사이트', '펜션 마당'];
 
 // maps: 방문자 화면의 미니맵 한 장 = 지도 하나. 층·구역 구분 없이 이름은 관리자가 붙인다
-const state = { step: 0, name: '', scale: null, maps: [], active: 0, sel: null, vis: 'private', touched: false, nameTouched: false };
+const state = { step: 0, name: '', scale: null, maps: [], active: 0, sel: null, cursor: { x: 50, y: 50 }, vis: 'private', touched: false, nameTouched: false };
 let uid = 1;
 const $ = (s, el = document) => el.querySelector(s);
 const esc = s => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -413,7 +449,7 @@ function renderSidebar() {
         </button></li>`).join('')}</ul>
       ${isSingle() && n === 1 ? '' : `<button class="btn btn-outline add-map" type="button" id="addMapItem">${icon('plus', 16)}지도 추가</button>`}
     </section>
-    <div class="tip">${icon('lightbulb-ai', 32)}<p class="t-sm">${state.step === 1 ? (needsName() ? '위에서부터 방문자에게<br>보이는 순서예요.' : '층이나 구역이 더 있으면<br>복합 공간으로 바꿔주세요.') : '다 못 채운 지도는<br>나중에 이어서 채울 수 있어요.'}</p></div>`;
+    <div class="tip">${icon('lightbulb-ai', 32)}<p class="t-sm">${state.step === 1 ? (needsName() ? '위에서부터 방문자에게 보이는 순서예요.<br>순서는 지도의 ⋯ 메뉴에서 바꿔요.' : '층이나 구역이 더 있으면<br>복합 공간으로 바꿔주세요.') : '다 못 채운 지도는<br>나중에 이어서 채울 수 있어요.'}</p></div>`;
 }
 
 /* ── 단계별 본문 ── */
@@ -466,9 +502,9 @@ function multiIllust() {
     <span class="multi-label" style="top:calc(50% + 16px)">지도 1</span>`;
 }
 
+// 지도 한 장 = 패널 하나. 지도와 사진 목록을 나란히 두어, 사진을 고르고 지도를 누르는 거리를 줄인다(피츠)
 function vMaps() {
-  const m = cur(), i = state.active, n = state.maps.length;
-  const groups = []; for (let k = 0; k < m.images.length; k += 6) groups.push(m.images.slice(k, k + 6));
+  const m = cur(), i = state.active;
   const nameErr = state.nameTouched && !named(m);
   return `
   <section class="panel" aria-labelledby="${needsName() ? 'mapName' : 'mapH'}">
@@ -478,25 +514,31 @@ function vMaps() {
           <input id="mapName" autocomplete="off" aria-required="true" placeholder="지도 이름 (예: 1층, 캠핑 사이트)" value="${esc(m.label)}" size="${titleSize(m.label)}" aria-invalid="${nameErr}" aria-describedby="mapNameHint${nameErr ? ' mapNameErr' : ''}">
           <svg class="pencil" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21.17 6.81a2.83 2.83 0 0 0-4-4L3.84 16.17a2 2 0 0 0-.5.83l-1.32 4.35a.5.5 0 0 0 .62.62l4.35-1.32a2 2 0 0 0 .83-.5z"/></svg>
         </label>` : '<h2 id="mapH" class="t-base-sb">지도</h2>'}
-      <span class="badge${m.map ? ' ok' : ''}">${m.map ? '✓ ' + SRC[m.source] : '지도 없음'}</span><span class="spacer"></span>
-      ${needsName() ? `<span class="order-btns">
-        <button class="btn btn-outline icon-btn" type="button" data-move="-1" aria-label="이 지도를 위로 옮기기"${i === 0 ? ' disabled' : ''}>↑</button>
-        <button class="btn btn-outline icon-btn" type="button" data-move="1" aria-label="이 지도를 아래로 옮기기"${i === n - 1 ? ' disabled' : ''}>↓</button>
-      </span>${n > 1 ? '<button class="btn btn-ghost" type="button" id="delMap">지도 삭제</button>' : ''}` : ''}
+      ${m.map ? `<span class="badge ok">✓ ${SRC[m.source]}</span>` : ''}<span class="spacer"></span>
+      ${moreMenu(m)}
     </div>
     ${needsName() ? `<p class="title-hint t-xs ${nameErr ? 'err' : 'muted'}" id="${nameErr ? 'mapNameErr' : 'mapNameHint'}">${nameErr ? '방문자에게 보일 이름을 붙여주세요.' : '이 이름이 방문자 화면에서 미니맵 이름으로 보여요.'}</p>` : ''}
     <div class="panel-body">${mapBody(m)}</div>
-  </section>
-  <section class="panel" aria-labelledby="imgH">
-    <div class="panel-head"><h2 id="imgH" class="t-base-sb">360이미지</h2>
-      <span class="badge${m.images.length ? ' ok' : ''}">${m.images.length}장</span><span class="spacer"></span>
-      <button class="btn btn-outline" type="button" id="addImg">${icon('plus', 16)}360이미지 추가</button></div>
-    <div class="panel-body">${m.images.length ? groups.map((g, gi) => `${groups.length > 1 ? `<h3 class="group-h">${gi * 6 + 1}–${gi * 6 + g.length}번</h3>` : ''}<ul class="grid">${g.map(shot).join('')}</ul>`).join('')
-      : `<div class="drop">${icon('photo-circle', 32)}<span class="t-sm-sb">아직 360이미지가 없어요</span><p class="t-xs muted">여러 장을 한 번에 고를 수 있어요</p></div>`}</div>
   </section>`;
 }
+// 자주 쓰지 않는 동작(순서·방식·삭제)은 더보기 메뉴로 접는다(힉) — shadcn DropdownMenu
+function moreMenu(m) {
+  const i = state.active, n = state.maps.length, items = [];
+  if (needsName() && n > 1) {
+    items.push(`<button type="button" role="menuitem" tabindex="-1" data-act="up"${i === 0 ? ' aria-disabled="true"' : ''}>위로 옮기기</button>`);
+    items.push(`<button type="button" role="menuitem" tabindex="-1" data-act="down"${i === n - 1 ? ' aria-disabled="true"' : ''}>아래로 옮기기</button>`);
+  }
+  if (m.source) items.push(`<button type="button" role="menuitem" tabindex="-1" data-act="src">지도 방식 바꾸기</button>`);
+  if (n > 1) items.push(`<span class="menu-sep" role="separator"></span><button type="button" role="menuitem" tabindex="-1" data-act="del" class="danger">지도 삭제</button>`);
+  if (!items.length) return '';
+  return `<div class="menu-wrap">
+    <button class="btn btn-outline icon-btn" type="button" id="moreBtn" aria-haspopup="menu" aria-expanded="false" aria-controls="moreMenu" aria-label="이 지도 더보기">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><circle cx="5" cy="12" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="19" cy="12" r="2"/></svg></button>
+    <div class="menu" id="moreMenu" role="menu" aria-labelledby="moreBtn" hidden>${items.join('')}</div>
+  </div>`;
+}
 function mapBody(m) {
-  if (m.map) return mapView(m) + `<div style="margin-top:12px;display:flex;gap:8px;align-items:center;flex-wrap:wrap"><button class="btn btn-outline" type="button" id="rmMap">지도 방식 바꾸기</button><span class="t-xs muted">구역 그리기는 공간을 만든 뒤 편집 모드에서 할 수 있어요.</span></div>`;
+  if (m.map) return workspace(m);
   if (m.source === 'upload') return `<div class="drop">${icon('map-pin', 32)}<span class="t-sm-sb">평면도나 안내도를 올려주세요</span><p class="t-xs muted">PNG·JPG, 20MB까지 · 끌어다 놓아도 돼요</p><button class="btn btn-primary" type="button" id="addMap">파일 고르기</button></div>
     <button class="btn btn-ghost" type="button" id="backSrc" style="margin-top:8px">다른 방식 고르기</button>`;
   // 편집 모드 '지도 추가' 모달과 같은 두 가지 방식. 네이버 지도를 먼저, 권장으로
@@ -517,16 +559,6 @@ function mapBody(m) {
       </button>
     </div></div>`;
 }
-function shot(img) {
-  const m = cur(), n = m.images.indexOf(img) + 1, sel = state.sel === img.id;
-  return `<li class="shot"${sel ? ' aria-current="true"' : ''}>
-    <div class="ph" style="background:linear-gradient(180deg,${img.c[0]} 0 55%,${img.c[1]} 55%)" role="img" aria-label="${esc(img.name)} 미리보기"><span class="n">${n}</span><span class="cap" aria-hidden="true">${esc(img.name)}</span></div>
-    <div class="meta"><span class="badge${img.pin ? ' ok' : ''}" style="align-self:flex-start">${img.pin ? (img.auto ? '✓ GPS로 찍힘' : '✓ 위치 있음') : m.source === 'naver' && !img.gps ? 'GPS 없음 · 직접 찍기' : '위치 없음'}</span>
-      <div class="acts">
-        <button class="btn btn-outline" type="button" data-sel="${img.id}" aria-pressed="${sel}"${m.map ? '' : ' disabled title="지도를 먼저 만들어 주세요"'}>${sel ? '지도에서 고르는 중' : img.pin ? '위치 바꾸기' : '위치 찍기'}</button>
-        <button class="btn btn-outline icon-btn" type="button" data-del="${img.id}" aria-label="${esc(img.name)} 삭제">🗑</button>
-      </div></div></li>`;
-}
 const PLAN_SVG = `<svg viewBox="0 0 400 250" aria-hidden="true" fill="none" stroke="#9AAACB" stroke-width="3">
   <rect x="20" y="20" width="360" height="210" fill="#fff"/><path d="M160 20v120M20 140h100M260 100h120M260 100v130"/>
   <g fill="#737373" stroke="none" font-size="13" font-family="Pretendard Variable, sans-serif" text-anchor="middle">
@@ -539,23 +571,53 @@ const NAVER_SVG = `<svg viewBox="0 0 400 250" aria-hidden="true">
   <path d="M0 140 C100 130 160 110 230 120 S340 120 400 100" stroke="#fff" stroke-width="10" fill="none"/>
   <path d="M0 140 C100 130 160 110 230 120 S340 120 400 100" stroke="#f3c969" stroke-width="5" fill="none"/>
   <path d="M190 0 C185 60 205 100 200 250" stroke="#fff" stroke-width="7" fill="none"/>
-  <path d="M60 60 C120 80 150 60 200 70 M200 70 C250 80 290 60 330 65" stroke="#fff" stroke-width="4" fill="none" stroke-dasharray="1 0"/>
+  <path d="M60 60 C120 80 150 60 200 70 M200 70 C250 80 290 60 330 65" stroke="#fff" stroke-width="4" fill="none"/>
   <g font-size="11" font-family="Pretendard Variable, sans-serif" fill="#5f6b7a" text-anchor="middle">
     <text x="80" y="66">캠핑 사이트</text><text x="318" y="62">주차장</text><text x="300" y="215">북한강</text><text x="150" y="160">가평로</text></g>
   <text x="394" y="244" font-size="9" fill="#7a7a7a" text-anchor="end" font-family="sans-serif">© NAVER Corp.</text></svg>`;
-function mapView(m) {
+function guide(m) {
+  const s = m.images.find(i => i.id === state.sel), todo = m.images.length - placed(m);
+  if (s) return `‘${s.name}’ 위치를 지도에서 눌러주세요. 키보드는 방향키로 옮기고 Enter로 찍어요.`;
+  if (!m.images.length) return m.source === 'naver' ? '360이미지를 올리면 GPS 위치에 맞춰 자동으로 찍혀요.' : '360이미지를 추가하고, 사진마다 지도 위 위치를 찍어주세요.';
+  if (todo) return m.source === 'naver' ? 'GPS가 없는 사진은 ‘찍기’를 누르고 지도에서 위치를 골라주세요.' : '‘찍기’를 누르고 지도에서 위치를 골라주세요.';
+  return '모든 사진의 위치가 찍혔어요.';
+}
+function workspace(m) {
   const s = m.images.find(i => i.id === state.sel), pl = m.images.filter(i => i.pin);
-  return `<div class="mapwrap">
-    <div class="floorplan${s ? '' : ' idle'}" id="plan" role="application" tabindex="0" aria-describedby="pinlist"
-      aria-label="${esc(dn(m))} ${SRC[m.source]}. ${s ? `‘${esc(s.name)}’ 위치를 지도에서 눌러주세요. Enter를 누르면 가운데에 찍혀요.` : '사진의 위치 찍기 버튼을 먼저 눌러주세요.'}">
-      ${m.source === 'naver' ? NAVER_SVG : PLAN_SVG}
-      ${pl.map(i => `<div class="pin" style="left:${i.pin.x}%;top:${i.pin.y}%"><b>${m.images.indexOf(i) + 1}</b><span>${esc(i.name)}</span></div>`).join('')}
+  const todo = m.images.filter(i => !i.pin), ok = m.images.filter(i => i.pin);
+  const c = state.cursor;
+  return `<div class="ws">
+    <div class="ws-map">
+      <div class="floorplan${s ? '' : ' idle'}" id="plan" role="application" tabindex="0" aria-describedby="wsGuide crossPos"
+        aria-label="${esc(dn(m))} ${SRC[m.source]}${s ? `, ‘${esc(s.name)}’ 위치 고르는 중` : ''}">
+        ${m.source === 'naver' ? NAVER_SVG : PLAN_SVG}
+        ${pl.map(i => `<div class="pin${i.auto ? '' : ' manual'}" style="left:${i.pin.x}%;top:${i.pin.y}%"><b>${m.images.indexOf(i) + 1}</b><span>${esc(i.name)}</span></div>`).join('')}
+        ${s ? `<div class="cross" id="cross" style="left:${c.x}%;top:${c.y}%" aria-hidden="true"></div>` : ''}
+      </div>
+      <p class="sr-only" id="crossPos" aria-live="polite">${s ? `가로 ${Math.round(c.x)}%, 세로 ${Math.round(c.y)}%` : ''}</p>
+      <p class="map-legend t-xs muted" style="margin:8px 0 0">${m.source === 'naver' ? '<span><i style="background:var(--accent)"></i>GPS로 찍힘</span>' : ''}<span><i style="box-shadow:inset 0 0 0 2px var(--accent)"></i>직접 찍음</span><span>· 구역 그리기는 공간을 만든 뒤 편집 모드에서 할 수 있어요.</span></p>
     </div>
-    <div class="pinlist" id="pinlist">
-      <h3 class="t-sm-sb">위치 찍은 사진 ${pl.length}/${m.images.length}</h3>
-      <p class="t-xs muted">${s ? `‘${esc(s.name)}’ 위치를 지도에서 눌러주세요.` : m.source === 'naver' ? (m.images.length ? (pl.length < m.images.length ? 'GPS가 없는 사진은 ‘위치 찍기’로 직접 찍어주세요.' : '모든 사진이 GPS 위치로 찍혔어요. 위치가 다르면 ‘위치 바꾸기’로 옮길 수 있어요.') : '360이미지를 올리면 GPS 위치에 맞춰 자동으로 찍혀요.') : m.images.length ? '사진에서 ‘위치 찍기’를 누르고 지도를 눌러주세요.' : '아래에서 360이미지를 먼저 추가해 주세요.'}</p>
-      ${pl.length ? `<ol class="t-sm">${pl.map(i => `<li value="${m.images.indexOf(i) + 1}">${esc(i.name)}</li>`).join('')}</ol>` : ''}
-    </div></div>`;
+    <div class="ws-list" aria-labelledby="imgH">
+      <div class="ws-list-head"><h3 id="imgH" class="t-base-sb">360이미지 <span class="t-sm muted" style="font-weight:400">${m.images.length}장</span></h3>
+        <button class="btn ${m.images.length ? 'btn-outline' : 'btn-primary'}" type="button" id="addImg">${icon('plus', 16)}추가</button></div>
+      <p class="t-xs ${s ? 'sel-guide' : 'muted'}" id="wsGuide">${guide(m)}</p>
+      ${m.images.length ? `
+        ${todo.length ? `<h4 class="group-h">위치를 찍어야 해요 · ${todo.length}</h4><ul class="rows">${todo.map(row).join('')}</ul>` : ''}
+        ${ok.length ? `<h4 class="group-h">위치가 찍힌 사진 · ${ok.length}</h4><ul class="rows">${ok.map(row).join('')}</ul>` : ''}`
+      : `<div class="drop" style="padding:24px 16px">${icon('photo-circle', 32)}<span class="t-sm-sb">아직 360이미지가 없어요</span><p class="t-xs muted" style="margin:0">여러 장을 한 번에 고를 수 있어요</p></div>`}
+    </div>
+  </div>`;
+}
+// 사진 한 줄: 번호(지도 핀과 같은 번호) · 이름 · 상태 텍스트 · 찍기 · 삭제
+function row(img) {
+  const m = cur(), n = m.images.indexOf(img) + 1, sel = state.sel === img.id;
+  const status = img.pin ? (img.auto ? '✓ GPS로 찍힘' : '✓ 직접 찍음') : m.source === 'naver' && !img.gps ? 'GPS 없음' : '위치 없음';
+  return `<li class="row"${sel ? ' aria-current="true"' : ''}>
+    <span class="row-th" style="background:linear-gradient(180deg,${img.c[0]} 0 55%,${img.c[1]} 55%)" aria-hidden="true"><b>${n}</b></span>
+    <span class="row-main"><span class="t-sm-sb row-name">${esc(img.name)}</span><span class="t-xs ${img.pin ? 'ok-text' : 'muted'}">${status}</span></span>
+    <button class="btn ${sel ? 'btn-primary' : 'btn-outline'} row-btn" type="button" data-sel="${img.id}" aria-pressed="${sel}" aria-label="${esc(img.name)} 위치 ${sel ? '고르는 중, 취소' : img.pin ? '바꾸기' : '찍기'}">${sel ? '고르는 중' : img.pin ? '바꾸기' : '찍기'}</button>
+    <button class="btn btn-ghost icon-btn row-del" type="button" data-del="${img.id}" aria-label="${esc(img.name)} 삭제"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6"/></svg></button>
+  </li>`;
 }
 
 function vReview() {
@@ -653,18 +715,8 @@ document.addEventListener('click', e => {
     state.maps.push(newMap()); state.nameTouched = false;
     openMap(state.maps.length - 1, '#mapName'); toast('지도를 추가했어요. 이름부터 붙여주세요'); return;
   }
-  if (t.dataset.move) {
-    const i = state.active, j = i + +t.dataset.move, ms = state.maps; [ms[i], ms[j]] = [ms[j], ms[i]]; state.active = j; render();
-    const same = $(`[data-move="${t.dataset.move}"]`); (same && !same.disabled ? same : $('[data-move]:not([disabled])'))?.focus(); return;
-  }
-  if (t.id === 'delMap') {
-    const m = cur();
-    confirmBox('이 지도를 삭제할까요?', `‘${dn(m)}’ 지도와 360이미지 ${m.images.length}장이 같이 지워져요.`, t, () => {
-      state.maps.splice(state.active, 1); state.active = Math.max(0, state.active - 1); state.sel = null;
-      render(); toast(`‘${dn(m)}’ 지도를 삭제했어요`); $(`[data-map="${state.active}"]`)?.focus();
-    });
-    return;
-  }
+  if (t.id === 'moreBtn') { toggleMenu(t.getAttribute('aria-expanded') !== 'true'); return; }
+  if (t.dataset.act) { if (t.getAttribute('aria-disabled') !== 'true') menuAct(t.dataset.act); return; }
   const m = cur();
   if (t.dataset.src === 'naver') {
     m.source = 'naver'; m.map = true; const k = autoPin(m); render();
@@ -673,13 +725,18 @@ document.addEventListener('click', e => {
   if (t.dataset.src === 'upload') { m.source = 'upload'; render(); $('#addMap').focus(); return; }
   if (t.id === 'backSrc') { m.source = null; render(); $('[data-src="naver"]').focus(); return; }
   if (t.id === 'addMap') { m.map = true; render(); toast('지도 이미지를 올렸어요'); $('#addImg').focus(); return; }
-  if (t.id === 'rmMap') { m.map = false; m.source = null; m.images.forEach(i => { i.pin = null; i.auto = false; }); state.sel = null; render(); $('[data-src="naver"]').focus(); return; }
+
   if (t.id === 'addImg') {
     for (let k = 0; k < 3; k++) { const n = m.images.length; m.images.push({ id: uid++, name: NAMES[n % NAMES.length] + (n >= NAMES.length ? ' ' + (Math.floor(n / NAMES.length) + 1) : ''), pin: null, c: SKY[n % SKY.length], gps: n % 3 === 2 ? null : GPS[n % GPS.length] }); }
     const k = autoPin(m); render();
     toast(k ? `360이미지 3장을 추가했어요. ${k}장은 GPS 위치로 찍혔어요` : '360이미지 3장을 추가했어요'); $('#addImg').focus(); return;
   }
-  if (t.dataset.sel) { const id = +t.dataset.sel; state.sel = state.sel === id ? null : id; render(); $('#plan')?.focus(); return; }
+  if (t.dataset.sel) {
+    const id = +t.dataset.sel;
+    if (state.sel === id) { state.sel = null; render(); $(`[data-sel="${id}"]`)?.focus(); return; }
+    const img = m.images.find(i => i.id === id);
+    state.sel = id; state.cursor = img.pin ? { ...img.pin } : { x: 50, y: 50 }; render(); $('#plan')?.focus(); return;
+  }
   if (t.dataset.del) {
     const img = m.images.find(i => i.id === +t.dataset.del);
     confirmBox('이 사진을 삭제할까요?', `‘${img.name}’ 사진과 지도에 찍은 위치가 같이 지워져요.`, t, () => {
@@ -691,12 +748,55 @@ document.addEventListener('click', e => {
   if (t.id === 'plan' && state.sel) { const r = t.getBoundingClientRect(); pin((e.clientX - r.left) / r.width * 100, (e.clientY - r.top) / r.height * 100); }
 });
 document.addEventListener('keydown', e => {
-  if (e.target.id === 'plan' && (e.key === 'Enter' || e.key === ' ') && state.sel) { e.preventDefault(); pin(50, 50); }
+  // 지도: 방향키로 십자선을 옮기고(Shift는 크게) Enter로 찍기, Esc로 취소
+  if (e.target.id === 'plan' && state.sel) {
+    const d = e.shiftKey ? 10 : 2, c = state.cursor;
+    const mv = { ArrowLeft: [-d, 0], ArrowRight: [d, 0], ArrowUp: [0, -d], ArrowDown: [0, d] }[e.key];
+    if (mv) {
+      e.preventDefault(); c.x = Math.max(4, Math.min(96, c.x + mv[0])); c.y = Math.max(6, Math.min(94, c.y + mv[1]));
+      const x = $('#cross'); x.style.left = c.x + '%'; x.style.top = c.y + '%';
+      $('#crossPos').textContent = `가로 ${Math.round(c.x)}%, 세로 ${Math.round(c.y)}%`; return;
+    }
+    if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); pin(c.x, c.y); return; }
+    if (e.key === 'Escape') { const id = state.sel; state.sel = null; render(); $(`[data-sel="${id}"]`)?.focus(); return; }
+  }
+  // 더보기 메뉴: 위아래 화살표, Home/End, Esc·Tab으로 닫기
+  const menu = $('#moreMenu');
+  if (menu && !menu.hidden && menu.contains(e.target)) {
+    const items = [...menu.querySelectorAll('[role="menuitem"]')], k = items.indexOf(e.target);
+    const to = { ArrowDown: (k + 1) % items.length, ArrowUp: (k - 1 + items.length) % items.length, Home: 0, End: items.length - 1 }[e.key];
+    if (to !== undefined) { e.preventDefault(); items[to].focus(); return; }
+    if (e.key === 'Escape') { e.preventDefault(); toggleMenu(false); $('#moreBtn').focus(); return; }
+    if (e.key === 'Tab') toggleMenu(false);
+  }
+  if (e.target.id === 'moreBtn' && (e.key === 'ArrowDown' || e.key === 'ArrowUp')) { e.preventDefault(); toggleMenu(true, e.key === 'ArrowUp'); }
 });
+document.addEventListener('pointerdown', e => { if (!e.target.closest('.menu-wrap')) toggleMenu(false); });
+function toggleMenu(open, last) {
+  const menu = $('#moreMenu'), btn = $('#moreBtn');
+  if (!menu) return;
+  menu.hidden = !open; btn.setAttribute('aria-expanded', open);
+  if (open) { const it = menu.querySelectorAll('[role="menuitem"]'); (last ? it[it.length - 1] : it[0]).focus(); }
+}
+function menuAct(act) {
+  const m = cur(), i = state.active, ms = state.maps;
+  toggleMenu(false);
+  if (act === 'up' || act === 'down') {
+    const j = i + (act === 'up' ? -1 : 1); [ms[i], ms[j]] = [ms[j], ms[i]]; state.active = j; render();
+    toast(`‘${dn(m)}’ 지도를 ${j + 1}번째로 옮겼어요`); $('#moreBtn').focus(); return;
+  }
+  if (act === 'src') { m.map = false; m.source = null; m.images.forEach(x => { x.pin = null; x.auto = false; }); state.sel = null; render(); $('[data-src="naver"]').focus(); return; }
+  if (act === 'del') {
+    confirmBox('이 지도를 삭제할까요?', `‘${dn(m)}’ 지도와 360이미지 ${m.images.length}장이 같이 지워져요.`, $('#moreBtn'), () => {
+      ms.splice(i, 1); state.active = Math.max(0, i - 1); state.sel = null;
+      render(); toast(`‘${dn(m)}’ 지도를 삭제했어요`); $(`[data-map="${state.active}"]`)?.focus();
+    });
+  }
+}
 function pin(x, y) {
   const m = cur(), img = m.images.find(i => i.id === state.sel);
   img.pin = { x: Math.max(6, Math.min(90, x)), y: Math.max(8, Math.min(92, y)) }; img.auto = false;
-  const nx = m.images.find(i => !i.pin); state.sel = nx ? nx.id : null;
+  const nx = m.images.find(i => !i.pin); state.sel = nx ? nx.id : null; state.cursor = { x: 50, y: 50 };
   render(); toast(`‘${img.name}’ 위치를 찍었어요${nx ? ` · 다음은 ‘${nx.name}’` : ''}`); $('#plan')?.focus();
 }
 

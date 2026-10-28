@@ -149,6 +149,15 @@ fieldset { border: 0; margin: 0; padding: 0; min-width: 0; }
 .items.edit .item { cursor: default; padding: 8px 12px 8px 20px; }
 .items.edit .input { height: 36px; flex: 1; min-width: 0; }
 .order-btns { display: flex; gap: 4px; }
+/* 지도 이름 = 지도 패널 제목에서 바로 수정 (인라인 편집) */
+.title-edit { display: inline-flex; align-items: center; gap: 6px; height: 36px; padding: 0 10px; margin-left: -10px; border: 1px solid transparent; border-radius: var(--radius-md); cursor: text; max-width: 100%; color: var(--muted-foreground); }
+.title-edit input { border: 0; outline: 0; background: transparent; padding: 0; font-size: 16px; line-height: 24px; font-weight: 600; color: var(--foreground); min-width: 0; max-width: 100%; }
+.title-edit input::placeholder { color: var(--muted-foreground); font-weight: 500; }
+.title-edit:hover { border-color: var(--border); }
+.title-edit:focus-within { border-color: var(--semantic-border); box-shadow: 0 0 0 3px rgba(161,161,161,.5); }
+.title-edit.empty { border: 1px dashed var(--input); }
+.title-edit.invalid { border: 1px solid var(--destructive); }
+.title-hint { margin: 4px 24px 0; }
 .add-map { width: 100%; height: 44px; border-style: dashed; border-color: var(--semantic-border); box-shadow: none; }
 
 /* tip (Figma 460:1337) */
@@ -338,6 +347,8 @@ const named = m => !!m.label.trim();
 const done = m => (named(m) || !needsName()) && m.map && m.images.length > 0 && placed(m) === m.images.length;
 const dn = (m, i = state.maps.indexOf(m)) => named(m) ? m.label.trim() : needsName() ? `지도 ${i + 1}` : '지도';
 const cur = () => state.maps[state.active];
+// 비어 있으면 안내문 길이만큼, 채우면 글자 수만큼 제목 입력칸 너비를 맞춘다
+const titleSize = v => v.trim() ? Math.max(4, [...v].length + 2) : 24;
 
 /* ── 상단 ── */
 function renderStepper() {
@@ -443,28 +454,24 @@ function vMaps() {
   const groups = []; for (let k = 0; k < m.images.length; k += 6) groups.push(m.images.slice(k, k + 6));
   const nameErr = state.nameTouched && !named(m);
   return `
-  ${needsName() ? `<section class="panel" aria-labelledby="mnH">
-    <div class="panel-head"><h2 id="mnH" class="t-base-sb">${i + 1}번째 지도</h2><span class="spacer"></span>
-      <span class="order-btns">
+  <section class="panel" aria-labelledby="${needsName() ? 'mapName' : 'mapH'}">
+    <div class="panel-head">
+      ${needsName() ? `<label class="title-edit${named(m) ? '' : ' empty'}${nameErr ? ' invalid' : ''}">
+          <span class="sr-only">${i + 1}번째 지도 이름</span>
+          <input id="mapName" autocomplete="off" aria-required="true" placeholder="지도 이름 (예: 1층, 캠핑 사이트)" value="${esc(m.label)}" size="${titleSize(m.label)}" aria-invalid="${nameErr}" aria-describedby="mapNameHint${nameErr ? ' mapNameErr' : ''}">
+          <svg class="pencil" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21.17 6.81a2.83 2.83 0 0 0-4-4L3.84 16.17a2 2 0 0 0-.5.83l-1.32 4.35a.5.5 0 0 0 .62.62l4.35-1.32a2 2 0 0 0 .83-.5z"/></svg>
+        </label>` : '<h2 id="mapH" class="t-base-sb">지도 이미지</h2>'}
+      <span class="badge${m.map ? ' ok' : ''}">${m.map ? '✓ 지도 있음' : '지도 없음'}</span><span class="spacer"></span>
+      ${needsName() ? `<span class="order-btns">
         <button class="btn btn-outline icon-btn" type="button" data-move="-1" aria-label="이 지도를 위로 옮기기"${i === 0 ? ' disabled' : ''}>↑</button>
         <button class="btn btn-outline icon-btn" type="button" data-move="1" aria-label="이 지도를 아래로 옮기기"${i === n - 1 ? ' disabled' : ''}>↓</button>
-      </span>
-      ${n > 1 ? '<button class="btn btn-ghost" type="button" id="delMap">지도 삭제</button>' : ''}</div>
-    <div class="panel-body"><div class="field">
-      <label for="mapName">지도 이름 <span class="req" aria-hidden="true">*</span></label>
-      <input class="input" id="mapName" autocomplete="off" aria-required="true" placeholder="예: 1층, 캠핑 사이트" value="${esc(m.label)}" aria-invalid="${nameErr}" aria-describedby="mapNameHint${nameErr ? ' mapNameErr' : ''}">
-      <span class="t-xs muted" id="mapNameHint">방문자 화면에서 미니맵 이름으로 보여요.</span>
-      ${nameErr ? '<span class="err" id="mapNameErr">방문자에게 보일 이름을 붙여주세요.</span>' : ''}
-    </div></div>
-  </section>` : ''}
-  <section class="panel" aria-labelledby="mapH">
-    <div class="panel-head"><h2 id="mapH" class="t-base-sb"><span class="step-no" aria-hidden="true">1</span>지도 이미지</h2>
-      <span class="badge${m.map ? ' ok' : ''}">${m.map ? '✓ 완료' : '아직 없어요'}</span><span class="spacer"></span>
-      ${m.map ? '<button class="btn btn-outline" type="button" id="rmMap">이미지 바꾸기</button>' : ''}</div>
-    <div class="panel-body">${m.map ? mapView(m) : `<div class="drop">${icon('map-pin', 32)}<span class="t-sm-sb">평면도나 약도를 올려주세요</span><p class="t-xs muted">PNG·JPG·PDF, 20MB까지 · 끌어다 놓아도 돼요</p><button class="btn btn-primary" type="button" id="addMap">파일 고르기</button></div>`}</div>
+      </span>${n > 1 ? '<button class="btn btn-ghost" type="button" id="delMap">지도 삭제</button>' : ''}` : ''}
+    </div>
+    ${needsName() ? `<p class="title-hint t-xs ${nameErr ? 'err' : 'muted'}" id="${nameErr ? 'mapNameErr' : 'mapNameHint'}">${nameErr ? '방문자에게 보일 이름을 붙여주세요.' : '이 이름이 방문자 화면에서 미니맵 이름으로 보여요.'}</p>` : ''}
+    <div class="panel-body">${m.map ? mapView(m) + '<div style="margin-top:12px"><button class="btn btn-outline" type="button" id="rmMap">지도 이미지 바꾸기</button></div>' : `<div class="drop">${icon('map-pin', 32)}<span class="t-sm-sb">평면도나 약도를 올려주세요</span><p class="t-xs muted">PNG·JPG·PDF, 20MB까지 · 끌어다 놓아도 돼요</p><button class="btn btn-primary" type="button" id="addMap">파일 고르기</button></div>`}</div>
   </section>
   <section class="panel" aria-labelledby="imgH">
-    <div class="panel-head"><h2 id="imgH" class="t-base-sb"><span class="step-no" aria-hidden="true">2</span>360이미지</h2>
+    <div class="panel-head"><h2 id="imgH" class="t-base-sb">360이미지</h2>
       <span class="badge${m.images.length ? ' ok' : ''}">${m.images.length}장</span><span class="spacer"></span>
       <button class="btn btn-outline" type="button" id="addImg">${icon('plus', 16)}360이미지 추가</button></div>
     <div class="panel-body">${m.images.length ? groups.map((g, gi) => `${groups.length > 1 ? `<h3 class="group-h">${gi * 6 + 1}–${gi * 6 + g.length}번</h3>` : ''}<ul class="grid">${g.map(shot).join('')}</ul>`).join('')
@@ -566,7 +573,17 @@ function openMap(i, focusSel) { state.active = i; state.step = 1; state.sel = nu
 /* ── 이벤트 ── */
 document.addEventListener('input', e => {
   if (e.target.id === 'nameInput') { state.name = e.target.value.slice(0, 30); renderBar(); }
-  if (e.target.id === 'mapName') { cur().label = e.target.value.slice(0, 20); renderSidebar(); renderBar(); }
+  if (e.target.id === 'mapName') {
+    const v = e.target.value.slice(0, 20), ok = !!v.trim(), box = e.target.closest('.title-edit'), hint = $('.title-hint');
+    cur().label = v; e.target.size = titleSize(v);
+    box.classList.toggle('empty', !ok);
+    // 이름을 채우는 즉시 오류 표시를 거둔다
+    if (ok && box.classList.contains('invalid')) {
+      box.classList.remove('invalid'); e.target.setAttribute('aria-invalid', 'false'); e.target.setAttribute('aria-describedby', 'mapNameHint');
+      hint.id = 'mapNameHint'; hint.className = 'title-hint t-xs muted'; hint.textContent = '이 이름이 방문자 화면에서 미니맵 이름으로 보여요.';
+    }
+    renderSidebar(); renderBar();
+  }
 });
 document.addEventListener('change', e => {
   if (e.target.name === 'scale') { state.scale = e.target.value; if (!state.maps.length) state.maps.push(newMap()); renderBar(); }

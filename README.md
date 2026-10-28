@@ -13,6 +13,24 @@ python3 -m http.server 5173
 |---|---|
 | ![before-1](docs/figma-before-1.png) | ![before-2](docs/figma-before-2.png) |
 
+## 디자인 시스템 기준
+
+프로토타입은 **Figma 시안(460:1532)의 변수·컴포넌트를 그대로** 사용하고, 시안에 없는 컴포넌트만 **shadcn/ui** 스펙을 따랐습니다.
+
+| 출처 | 사용한 것 |
+|---|---|
+| Figma 변수 | Pretendard Variable, `foreground #0a0a0a` · `primary #171717` · `muted-foreground #737373` · `secondary #f5f5f5` · `border #e5e5e5` · `sidebar #fafafa`, radius 2/8/10, 텍스트 스타일(3xl·base·sm·xs) |
+| Figma 컴포넌트 | Navigation(로고·아바타), Sidebar, Navigation/GNB, StepForm 스테퍼, Title, Select(입력), Buttons, ItemOrder(층 카드), tip, Space Type Card(일러스트 SVG 원본), lucide/remix/tabler 아이콘 |
+| shadcn/ui | Tabs, Card, Badge(default/outline), Table, AlertDialog, Checkbox, RadioGroup, Sonner(토스트), Progress |
+
+접근성을 위해 시안 값에서 바꾼 부분:
+- 입력란 테두리 `#e5e5e5 → #8f8f8f`(`--input` 토큰 추가, 1.4.11 비텍스트 대비 3:1)
+- 스테퍼 활성 배지 `chart-2 #3b82f6 → #2f6bff`(흰 숫자 대비 3.7:1 → 4.5:1, 카드 선택색과 통일)
+- 비활성 스테퍼 숫자 `semantic-border #a3a3a3 → muted-foreground`(2.5:1 → 4.7:1)
+- 층수 조절 버튼 28px → 36px, 순서 `+ n −` → `− n +`
+- ItemOrder의 지도·360 아이콘 옆에 상태 텍스트(`지도`/`지도 없음`, `3/6`) 추가
+- Space Type Card 선택 시 `✓ 선택됨` 배지 추가(색 외 구분)
+
 ---
 
 ## 🟢 잘된 점

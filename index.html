@@ -290,7 +290,7 @@ dialog p { margin: 0 0 16px; color: var(--muted-foreground); }
 
   <main class="main">
     <div class="gnb">
-      <a class="btn btn-outline icon-btn" href="#" aria-label="내 공간 목록으로 나가기"><img src="assets/arrow-left.svg" width="16" height="16" alt=""></a>
+      <a class="btn btn-outline icon-btn" href="#" aria-label="내 공간으로 돌아가기"><img src="assets/arrow-left.svg" width="16" height="16" alt=""></a>
       <span class="t-sm-sb">새 공간 만들기</span>
       <span class="spacer"></span>
       <button class="btn btn-ghost" type="button" id="saveDraft">임시 저장</button>
@@ -309,21 +309,21 @@ dialog p { margin: 0 0 16px; color: var(--muted-foreground); }
 </div>
 
 <dialog id="dlg" aria-labelledby="dlgT" aria-describedby="dlgD">
-  <h2 id="dlgT">360 이미지를 삭제할까요?</h2>
+  <h2 id="dlgT">이 사진을 삭제할까요?</h2>
   <p id="dlgD" class="t-sm"></p>
   <div class="dlg-acts">
     <button class="btn btn-outline" type="button" id="dlgCancel">취소</button>
-    <button class="btn btn-destructive" type="button" id="dlgOk">삭제</button>
+    <button class="btn btn-destructive" type="button" id="dlgOk">삭제하기</button>
   </div>
 </dialog>
 <div class="toast" id="toast" role="status"></div>
 
 <script>
 const STEPS = [
-  { name: '공간 정보', hint: '공간명과 규모' },
-  { name: '층 구성', hint: '층 수와 이름' },
-  { name: '지도·360 등록', hint: '층마다 지도와 360이미지' },
-  { name: '검토·공개', hint: '빠진 것 확인 후 저장' },
+  { name: '공간 정보', hint: '이름과 크기' },
+  { name: '층 정하기', hint: '몇 층인지, 층마다 이름' },
+  { name: '지도·사진 올리기', hint: '층마다 지도와 360이미지' },
+  { name: '확인하기', hint: '빠진 게 없는지 보고 만들기' },
 ];
 const SKY = [['#9cc8f0','#d9c8a6'],['#a9d2f2','#7f9a6a'],['#c3d9ef','#a07d5e'],['#8fbde8','#5f7f58'],['#b8d4ee','#8e8a80'],['#9fc3e6','#6d8f73']];
 const NAMES = ['입구', '초입부', '카페 앞', '카페 내부', '테라스', '바베큐장', '캠핑사이트', '펜션 마당'];
@@ -375,10 +375,10 @@ function syncFlow() {
 function renderTitle() {
   const f = state.floors[state.active];
   const t = [
-    ['어떤 공간을 등록하나요?', '공간명과 규모만 정하면 됩니다. 규모는 나중에 언제든 바꿀 수 있어요.'],
-    ['층을 구성해 주세요.', '층 수를 바꾸면 목록이 바로 맞춰져요. 층 이름은 직접 고칠 수 있어요.'],
-    [`${state.floors.length > 1 ? f.label + ' · ' : ''}지도와 360이미지를 등록하세요.`, '지도를 올리고 → 360이미지를 추가한 뒤 → 이미지를 골라 지도 위 위치를 찍으면 미니맵이 완성돼요.'],
-    ['마지막으로 확인해 주세요.', '비공개로 저장하면 나만 볼 수 있어요. 저장 후에도 언제든 고칠 수 있어요.'],
+    ['어떤 공간을 만들까요?', '이름과 크기만 정하면 돼요. 크기는 나중에 바꿀 수 있어요.'],
+    ['몇 층인가요?', '층 수를 바꾸면 목록도 같이 바뀌어요. 층 이름은 눌러서 고칠 수 있어요.'],
+    [`${state.floors.length > 1 ? f.label + '에 ' : ''}지도와 360이미지를 올려주세요`, '지도를 올리고 사진마다 위치를 찍으면 미니맵이 만들어져요.'],
+    ['이대로 만들까요?', '만든 뒤에도 언제든 고칠 수 있어요.'],
   ][state.step];
   $('#titleBlock').innerHTML = `<h1 class="t-3xl" tabindex="-1">${esc(t[0])}</h1><p class="t-sm muted">${t[1]}</p>`;
 }
@@ -389,22 +389,22 @@ function renderSidebar() {
   if (state.step === 0) {
     sb.innerHTML = `
       <section class="side-sec" aria-labelledby="flowH">
-        <h2 id="flowH" class="t-base-sb">등록 순서</h2>
+        <h2 id="flowH" class="t-base-sb">이렇게 진행돼요</h2>
         <ol class="flow">${STEPS.map((s, i) => `<li${i === 0 ? ' aria-current="step"' : ''}><span class="no" aria-hidden="true">${i + 1}</span><span><span class="t-sm-sb">${s.name}</span><br><span class="t-xs muted">${s.hint}</span></span></li>`).join('')}</ol>
       </section>
-      <div class="tip">${icon('lightbulb-ai', 32)}<p class="t-sm">한 번에 다 못 해도 괜찮아요.<br>임시 저장 후 이어서 등록할 수 있어요.</p></div>`;
+      <div class="tip">${icon('lightbulb-ai', 32)}<p class="t-sm">한 번에 다 못 채워도 괜찮아요.<br>임시 저장하고 나중에 이어서 할 수 있어요.</p></div>`;
     syncFlow();
     return;
   }
   const n = state.floors.length, ok = state.floors.filter(done).length;
   sb.innerHTML = `
     <section class="side-sec" aria-labelledby="nameH">
-      <h2 id="nameH" class="t-base-sb">공간명</h2>
+      <h2 id="nameH" class="t-base-sb">공간 이름</h2>
       <div class="t-sm" style="display:flex;justify-content:space-between;align-items:center">${esc(state.name)}<button class="btn btn-ghost" type="button" data-goto-step="0" style="height:28px;padding:0 8px;font-size:13px">수정</button></div>
     </section>
     <section class="side-sec" aria-labelledby="zoneH">
       <h2 id="zoneH" class="t-base-sb">세부 구역</h2>
-      <p class="progress" style="margin:0">${isSingle() ? '단일 공간 · 지도 1장' : `총 ${n}개 층 · ${ok}개 완료`}</p>
+      <p class="progress" style="margin:0">${isSingle() ? '단일 공간 · 지도 1장' : `${n}개 층 중 ${ok}개 완료`}</p>
       <ul class="items">${state.floors.map((f, i) => `<li>
         <button class="item" type="button" data-floor="${i}"${state.step === 2 && i === state.active ? ' aria-current="true"' : ''}>
           <span class="lead"><span class="no" aria-hidden="true">${i + 1}</span><span class="label">${esc(f.label)}</span></span>
@@ -414,7 +414,7 @@ function renderSidebar() {
           </span>
         </button></li>`).join('')}</ul>
     </section>
-    <div class="tip">${icon('lightbulb-ai', 32)}<p class="t-sm">${state.step === 1 ? '층 수를 바꾸면<br>왼쪽 목록도 같이 바뀌어요.' : state.step === 2 ? '층을 누르면 그 층의<br>지도와 360이미지로 이동해요.' : '미완료 층은 비공개로<br>저장한 뒤 이어서 해도 돼요.'}</p></div>`;
+    <div class="tip">${icon('lightbulb-ai', 32)}<p class="t-sm">${state.step === 1 ? '층 수를 바꾸면<br>이 목록도 같이 바뀌어요.' : state.step === 2 ? '층을 누르면<br>그 층으로 바로 이동해요.' : '다 못 채운 층은<br>나중에 이어서 채울 수 있어요.'}</p></div>`;
 }
 
 /* ── 단계별 본문 ── */
@@ -422,24 +422,24 @@ function vBasics() {
   const e1 = state.touched && !state.name.trim(), e2 = state.touched && !state.scale;
   return `
   <div class="field">
-    <label for="nameInput">공간명 <span class="req" aria-hidden="true">*</span></label>
+    <label for="nameInput">공간 이름 <span class="req" aria-hidden="true">*</span></label>
     <input class="input" id="nameInput" autocomplete="off" aria-required="true" placeholder="예: 가평 휴밸리" value="${esc(state.name)}" aria-invalid="${e1}" aria-describedby="nameHint${e1 ? ' nameErr' : ''}">
-    <span class="t-xs muted" id="nameHint">방문자에게 보이는 이름이에요. 30자 이내.</span>
-    ${e1 ? '<span class="err" id="nameErr">공간명을 입력해 주세요.</span>' : ''}
+    <span class="t-xs muted" id="nameHint">방문자에게 보이는 이름이에요. 30자까지 쓸 수 있어요.</span>
+    ${e1 ? '<span class="err" id="nameErr">공간 이름을 알려주세요.</span>' : ''}
   </div>
   <fieldset${e2 ? ' aria-describedby="scaleErr"' : ''}>
-    <legend class="legend">공간 규모 <span class="req" aria-hidden="true">*</span></legend>
+    <legend class="legend">공간 크기 <span class="req" aria-hidden="true">*</span></legend>
     <div class="cards">
       ${typeCard('single', '단일 공간', '지도 1장에 모두 담기는 공간', ['카페', '진료실', '소형 매장', '원룸'], singleIllust())}
       ${typeCard('multi', '복합 공간', '층이나 구역마다 지도가 따로 필요한 공간', ['종합 병원', '상가 건물', '캠핑장'], multiIllust())}
     </div>
-    ${e2 ? '<p class="err" id="scaleErr" style="margin-top:8px">공간 규모를 선택해 주세요.</p>' : ''}
+    ${e2 ? '<p class="err" id="scaleErr" style="margin-top:8px">공간 크기를 골라주세요.</p>' : ''}
   </fieldset>`;
 }
 function typeCard(v, name, desc, chips, illust) {
   return `<label class="type-card">
     <input type="radio" name="scale" value="${v}"${state.scale === v ? ' checked' : ''}>
-    <span class="check" aria-hidden="true">✓ 선택됨</span>
+    <span class="check" aria-hidden="true">✓ 선택</span>
     <div class="illust" aria-hidden="true">${illust}</div>
     <div class="body"><span class="name">${name}</span><span class="desc">${desc}</span>
       <span class="chips">${chips.map(c => `<span class="chip">${c}</span>`).join('')}</span></div>
@@ -472,14 +472,14 @@ function vFloors() {
   return `
   <div style="display:flex;gap:32px;align-items:flex-end;flex-wrap:wrap">
     <div style="display:flex;flex-direction:column;gap:12px">
-      <span class="t-sm-m" id="cntL">총 층수</span>
+      <span class="t-sm-m" id="cntL">층 수</span>
       <div class="counter" role="group" aria-labelledby="cntL">
-        <button type="button" id="dec" aria-label="층 하나 빼기"${n <= 2 ? ' disabled' : ''}>${icon('minus', 24)}</button>
+        <button type="button" id="dec" aria-label="한 층 빼기"${n <= 2 ? ' disabled' : ''}>${icon('minus', 24)}</button>
         <output id="cnt" aria-live="polite">${n}</output>
-        <button type="button" id="inc" aria-label="층 하나 더하기"${n >= 20 ? ' disabled' : ''}>${icon('plus', 24)}</button>
+        <button type="button" id="inc" aria-label="한 층 더하기"${n >= 20 ? ' disabled' : ''}>${icon('plus', 24)}</button>
       </div>
     </div>
-    <label class="check-row"><input type="checkbox" id="basement"${state.basement ? ' checked' : ''}>지하층(B1) 포함</label>
+    <label class="check-row"><input type="checkbox" id="basement"${state.basement ? ' checked' : ''}>지하 1층도 있어요</label>
   </div>
   <ol class="items edit" aria-label="층 목록" style="max-width:560px">
     ${state.floors.map((f, i) => `<li class="item">
@@ -499,13 +499,13 @@ function vUpload() {
   return `
   ${multi ? `<div class="tabs" role="tablist" aria-label="층 선택">${state.floors.map((fl, i) => `
     <button class="tab" role="tab" id="tab${i}" aria-controls="tp" aria-selected="${i === state.active}" tabindex="${i === state.active ? 0 : -1}" data-tab="${i}">
-      <span class="dot${done(fl) ? ' ok' : ''}" aria-hidden="true"></span>${esc(fl.label)}<span class="sr-only">${done(fl) ? ' 완료' : ' 진행 중'}</span></button>`).join('')}</div>` : ''}
+      <span class="dot${done(fl) ? ' ok' : ''}" aria-hidden="true"></span>${esc(fl.label)}<span class="sr-only">${done(fl) ? ' 완료' : ' 채우는 중'}</span></button>`).join('')}</div>` : ''}
   <div id="tp"${multi ? ` role="tabpanel" aria-labelledby="tab${state.active}" style="margin-top:16px"` : ''}>
     <section class="panel" aria-labelledby="mapH">
-      <div class="panel-head"><h2 id="mapH" class="t-base-sb"><span class="step-no" aria-hidden="true">1</span>지도(미니맵)</h2>
-        <span class="badge${f.map ? ' ok' : ''}">${f.map ? '✓ 등록됨' : '필요'}</span><span class="spacer"></span>
-        ${f.map ? '<button class="btn btn-outline" type="button" id="rmMap">지도 교체</button>' : ''}</div>
-      <div class="panel-body">${f.map ? mapView(f) : `<div class="drop">${icon('map-pin', 32)}<span class="t-sm-sb">평면도나 약도 이미지를 올려주세요</span><p class="t-xs muted">PNG·JPG·PDF, 20MB 이하 · 파일을 끌어다 놓아도 돼요</p><button class="btn btn-primary" type="button" id="addMap">지도 파일 선택</button></div>`}</div>
+      <div class="panel-head"><h2 id="mapH" class="t-base-sb"><span class="step-no" aria-hidden="true">1</span>지도</h2>
+        <span class="badge${f.map ? ' ok' : ''}">${f.map ? '✓ 완료' : '아직 없어요'}</span><span class="spacer"></span>
+        ${f.map ? '<button class="btn btn-outline" type="button" id="rmMap">지도 바꾸기</button>' : ''}</div>
+      <div class="panel-body">${f.map ? mapView(f) : `<div class="drop">${icon('map-pin', 32)}<span class="t-sm-sb">평면도나 약도를 올려주세요</span><p class="t-xs muted">PNG·JPG·PDF, 20MB까지 · 끌어다 놓아도 돼요</p><button class="btn btn-primary" type="button" id="addMap">파일 고르기</button></div>`}</div>
     </section>
     <section class="panel" aria-labelledby="imgH">
       <div class="panel-head"><h2 id="imgH" class="t-base-sb"><span class="step-no" aria-hidden="true">2</span>360이미지</h2>
@@ -520,9 +520,9 @@ function shot(img) {
   const f = state.floors[state.active], n = f.images.indexOf(img) + 1, sel = state.sel === img.id;
   return `<li class="shot"${sel ? ' aria-current="true"' : ''}>
     <div class="ph" style="background:linear-gradient(180deg,${img.c[0]} 0 55%,${img.c[1]} 55%)" role="img" aria-label="${esc(img.name)} 미리보기"><span class="n">${n}</span><span class="cap" aria-hidden="true">${esc(img.name)}</span></div>
-    <div class="meta"><span class="badge${img.pin ? ' ok' : ''}" style="align-self:flex-start">${img.pin ? '✓ 지도에 배치됨' : '미배치'}</span>
+    <div class="meta"><span class="badge${img.pin ? ' ok' : ''}" style="align-self:flex-start">${img.pin ? '✓ 위치 있음' : '위치 없음'}</span>
       <div class="acts">
-        <button class="btn btn-outline" type="button" data-sel="${img.id}" aria-pressed="${sel}"${f.map ? '' : ' disabled title="지도를 먼저 등록하세요"'}>${sel ? '위치 찍는 중…' : img.pin ? '위치 수정' : '위치 지정'}</button>
+        <button class="btn btn-outline" type="button" data-sel="${img.id}" aria-pressed="${sel}"${f.map ? '' : ' disabled title="지도를 먼저 올려주세요"'}>${sel ? '지도에서 고르는 중' : img.pin ? '위치 바꾸기' : '위치 찍기'}</button>
         <button class="btn btn-outline icon-btn" type="button" data-del="${img.id}" aria-label="${esc(img.name)} 삭제">🗑</button>
       </div></div></li>`;
 }
@@ -530,7 +530,7 @@ function mapView(f) {
   const s = f.images.find(i => i.id === state.sel), pl = f.images.filter(i => i.pin);
   return `<div class="mapwrap">
     <div class="floorplan${s ? '' : ' idle'}" id="plan" role="application" tabindex="0" aria-describedby="pinlist"
-      aria-label="${esc(f.label)} 지도. ${s ? `‘${esc(s.name)}’ 위치를 지정하려면 클릭하거나 Enter로 가운데에 놓으세요.` : '360이미지의 위치 지정 버튼을 먼저 누르세요.'}">
+      aria-label="${esc(f.label)} 지도. ${s ? `‘${esc(s.name)}’ 위치를 지도에서 눌러주세요. Enter를 누르면 가운데에 찍혀요.` : '사진의 위치 찍기 버튼을 먼저 눌러주세요.'}">
       <svg viewBox="0 0 400 250" aria-hidden="true" fill="none" stroke="#9AAACB" stroke-width="3">
         <rect x="20" y="20" width="360" height="210" fill="#fff"/><path d="M160 20v120M20 140h100M260 100h120M260 100v130"/>
         <g fill="#737373" stroke="none" font-size="13" font-family="Pretendard Variable, sans-serif" text-anchor="middle">
@@ -539,8 +539,8 @@ function mapView(f) {
       ${pl.map(i => `<div class="pin" style="left:${i.pin.x}%;top:${i.pin.y}%"><b>${f.images.indexOf(i) + 1}</b><span>${esc(i.name)}</span></div>`).join('')}
     </div>
     <div class="pinlist" id="pinlist">
-      <h3 class="t-sm-sb">배치 현황 ${pl.length}/${f.images.length}</h3>
-      <p class="t-xs muted">${s ? `‘${esc(s.name)}’ 위치를 지도에서 클릭하세요.` : f.images.length ? '이미지 카드의 ‘위치 지정’을 누른 뒤 지도를 클릭하세요.' : '아래에서 360이미지를 먼저 추가하세요.'}</p>
+      <h3 class="t-sm-sb">위치 찍은 사진 ${pl.length}/${f.images.length}</h3>
+      <p class="t-xs muted">${s ? `‘${esc(s.name)}’ 위치를 지도에서 눌러주세요.` : f.images.length ? '사진에서 ‘위치 찍기’를 누르고 지도를 눌러주세요.' : '아래에서 360이미지를 먼저 추가해 주세요.'}</p>
       ${pl.length ? `<ol class="t-sm">${pl.map(i => `<li value="${f.images.indexOf(i) + 1}">${esc(i.name)}</li>`).join('')}</ol>` : ''}
     </div></div>`;
 }
@@ -549,52 +549,52 @@ function vReview() {
   const max = Math.max(1, ...state.floors.map(f => f.images.length));
   return `
   <section class="panel" aria-labelledby="chH">
-    <div class="panel-head"><h2 id="chH" class="t-base-sb">층별 360이미지 배치</h2></div>
+    <div class="panel-head"><h2 id="chH" class="t-base-sb">층별로 위치를 찍은 사진</h2></div>
     <div class="panel-body">
-      <div class="bars" role="img" aria-label="층별 배치 현황. 아래 표와 같은 내용입니다.">
+      <div class="bars" role="img" aria-label="층별로 위치를 찍은 사진 수. 아래 표와 같은 내용이에요.">
         ${state.floors.map(f => { const p = placed(f), u = f.images.length - p; return `<div class="bar t-sm"><span class="t-sm-sb">${esc(f.label)}</span>
           <div class="track"><div class="fill-ok" style="width:${p / max * 100}%"></div><div class="fill-no" style="width:${u / max * 100}%"></div></div>
-          <span class="num">${p}/${f.images.length} 배치</span></div>`; }).join('')}
+          <span class="num">${p}/${f.images.length}장</span></div>`; }).join('')}
       </div>
-      <div class="legend-row t-xs muted" aria-hidden="true"><span><i class="sw" style="background:var(--accent);border-color:var(--accent)"></i>배치됨 (채움)</span><span><i class="sw" style="background:repeating-linear-gradient(45deg,var(--semantic-border) 0 2px,transparent 2px 6px)"></i>미배치 (빗금)</span></div>
+      <div class="legend-row t-xs muted" aria-hidden="true"><span><i class="sw" style="background:var(--accent);border-color:var(--accent)"></i>위치 있음 (채움)</span><span><i class="sw" style="background:repeating-linear-gradient(45deg,var(--semantic-border) 0 2px,transparent 2px 6px)"></i>위치 없음 (빗금)</span></div>
     </div>
   </section>
   <section class="panel tbl-wrap">
     <table>
-      <caption>층별 등록 현황</caption>
-      <thead><tr><th scope="col">층</th><th scope="col">지도</th><th scope="col" class="num">360이미지</th><th scope="col" class="num">지도 배치</th><th scope="col">상태</th><th scope="col"><span class="sr-only">작업</span></th></tr></thead>
-      <tbody>${state.floors.map((f, i) => `<tr><th scope="row">${esc(f.label)}</th><td>${f.map ? '등록됨' : '없음'}</td><td class="num">${f.images.length}장</td><td class="num">${placed(f)} / ${f.images.length}</td>
-        <td><span class="badge${done(f) ? ' ok' : ''}">${done(f) ? '✓ 완료' : '미완료'}</span></td>
+      <caption>층별로 채운 내용</caption>
+      <thead><tr><th scope="col">층</th><th scope="col">지도</th><th scope="col" class="num">360이미지</th><th scope="col" class="num">위치 찍은 사진</th><th scope="col">상태</th><th scope="col"><span class="sr-only">작업</span></th></tr></thead>
+      <tbody>${state.floors.map((f, i) => `<tr><th scope="row">${esc(f.label)}</th><td>${f.map ? '있음' : '없음'}</td><td class="num">${f.images.length}장</td><td class="num">${placed(f)} / ${f.images.length}</td>
+        <td><span class="badge${done(f) ? ' ok' : ''}">${done(f) ? '✓ 완료' : '채우는 중'}</span></td>
         <td class="num"><button class="btn btn-ghost" type="button" data-goto="${i}">${esc(f.label)} 수정</button></td></tr>`).join('')}</tbody>
     </table>
   </section>
   <fieldset class="panel" style="padding:8px 20px">
     <legend class="sr-only">공개 설정</legend>
-    <label class="radio-row"><input type="radio" name="vis" value="private"${state.vis === 'private' ? ' checked' : ''}><span><span class="t-sm-sb">비공개로 저장</span><br><span class="t-xs muted">나만 볼 수 있어요. 확인 후 내 공간에서 공개로 바꿀 수 있어요.</span></span></label>
-    <label class="radio-row" style="border-top:1px solid var(--border)"><input type="radio" name="vis" value="public"${state.vis === 'public' ? ' checked' : ''}><span><span class="t-sm-sb">바로 공개</span><br><span class="t-xs muted">방문자에게 가상투어가 바로 보여요.</span></span></label>
+    <label class="radio-row"><input type="radio" name="vis" value="private"${state.vis === 'private' ? ' checked' : ''}><span><span class="t-sm-sb">나만 보기</span><br><span class="t-xs muted">확인하고 나서 내 공간에서 공개할 수 있어요.</span></span></label>
+    <label class="radio-row" style="border-top:1px solid var(--border)"><input type="radio" name="vis" value="public"${state.vis === 'public' ? ' checked' : ''}><span><span class="t-sm-sb">모두에게 공개</span><br><span class="t-xs muted">방문자가 바로 가상투어를 볼 수 있어요.</span></span></label>
   </fieldset>`;
 }
 
 /* ── 액션바 ── */
 function blocker() {
   if (state.step === 0) {
-    const b = [!state.name.trim() && '공간명', !state.scale && '공간 규모'].filter(Boolean);
-    return b.length ? `${b.join('과 ')}을 입력하면 다음으로 갈 수 있어요.` : '';
+    const noName = !state.name.trim(), noScale = !state.scale;
+    return noName && noScale ? '공간 이름과 크기를 알려주세요.' : noName ? '공간 이름을 알려주세요.' : noScale ? '공간 크기를 골라주세요.' : '';
   }
   if (state.step === 2) {
     const f = state.floors[state.active];
-    if (!f.map) return `${f.label}: 지도를 먼저 올려주세요.`;
-    if (!f.images.length) return `${f.label}: 360이미지를 추가해 주세요.`;
+    if (!f.map) return `${f.label} 지도를 먼저 올려주세요.`;
+    if (!f.images.length) return `${f.label}에 360이미지를 추가해 주세요.`;
     const u = f.images.length - placed(f);
-    if (u) return `${f.label}: 미배치 이미지 ${u}장 · 나중에 해도 돼요.`;
+    if (u) return `위치를 안 찍은 사진이 ${u}장 있어요. 나중에 찍어도 돼요.`;
   }
-  if (state.step === 3) { const l = state.floors.filter(f => !done(f)).length; if (l) return `미완료 층 ${l}개 · 비공개로 저장한 뒤 이어서 할 수 있어요.`; }
+  if (state.step === 3) { const l = state.floors.filter(f => !done(f)).length; if (l) return `아직 다 못 채운 층이 ${l}개 있어요. 나만 보기로 만들고 이어서 채워도 돼요.`; }
   return '';
 }
 function renderBar() {
   $('#prevBtn').hidden = state.step === 0;
   const nextFloor = state.step === 2 && state.active < state.floors.length - 1;
-  $('#nextBtn').textContent = state.step === 3 ? (state.vis === 'public' ? '만들고 공개하기' : '공간 만들기') : nextFloor ? `다음: ${state.floors[state.active + 1].label}` : '다음';
+  $('#nextBtn').textContent = state.step === 3 ? (state.vis === 'public' ? '만들고 공개하기' : '공간 만들기') : nextFloor ? `${state.floors[state.active + 1].label} 채우기` : '다음';
   const m = blocker();
   $('#nextBtn').setAttribute('aria-disabled', state.step === 0 && !!m);
   $('#barMsg').textContent = m;
@@ -628,7 +628,7 @@ document.addEventListener('change', e => {
 document.addEventListener('click', e => {
   const t = e.target.closest('button, #plan, a[href="#"]');
   if (!t) return;
-  if (t.matches('a[href="#"]')) { e.preventDefault(); toast('시안에서는 내 공간 목록으로 이동하지 않아요'); return; }
+  if (t.matches('a[href="#"]')) { e.preventDefault(); toast('시안이라 이동하지 않아요'); return; }
   if (t.id === 'saveDraft') { toast('임시 저장했어요 (시안)'); return; }
   if (t.id === 'inc' || t.id === 'dec') { makeFloors(state.floors.length + (t.id === 'inc' ? 1 : -1), state.basement); render(); ($('#' + t.id).disabled ? $(t.id === 'inc' ? '#dec' : '#inc') : $('#' + t.id)).focus(); return; }
   if (t.dataset.move) {
@@ -652,7 +652,7 @@ document.addEventListener('click', e => {
 });
 document.addEventListener('keydown', e => {
   if (e.target.id === 'plan' && (e.key === 'Enter' || e.key === ' ') && state.sel) { e.preventDefault(); pin(50, 50); }
-  if (e.target.getAttribute('role') === 'tab') {
+  if (e.target.getAttribute?.('role') === 'tab') {
     const n = state.floors.length, i = state.active;
     const nx = { ArrowRight: (i + 1) % n, ArrowLeft: (i - 1 + n) % n, Home: 0, End: n - 1 }[e.key];
     if (nx !== undefined) { e.preventDefault(); selTab(nx); }
@@ -663,7 +663,7 @@ function pin(x, y) {
   const f = state.floors[state.active], img = f.images.find(i => i.id === state.sel);
   img.pin = { x: Math.max(6, Math.min(90, x)), y: Math.max(8, Math.min(92, y)) };
   const nx = f.images.find(i => !i.pin); state.sel = nx ? nx.id : null;
-  render(); toast(`‘${img.name}’ 위치를 지정했어요${nx ? ` · 다음: ${nx.name}` : ''}`); $('#plan')?.focus();
+  render(); toast(`‘${img.name}’ 위치를 찍었어요${nx ? ` · 다음은 ‘${nx.name}’` : ''}`); $('#plan')?.focus();
 }
 
 /* AlertDialog: 네이티브 dialog로 포커스 트랩·Esc, 닫히면 원래 버튼으로 포커스 복귀 */
@@ -671,14 +671,14 @@ let pend = null, back = null;
 function askDel(id, opener) {
   const img = state.floors[state.active].images.find(i => i.id === id);
   pend = id; back = opener;
-  $('#dlgD').textContent = `‘${img.name}’을 삭제하면 지도 위 위치도 함께 지워져요.`;
+  $('#dlgD').textContent = `‘${img.name}’ 사진과 지도에 찍은 위치가 같이 지워져요.`;
   $('#dlg').showModal(); $('#dlgCancel').focus();
 }
 $('#dlgCancel').onclick = () => $('#dlg').close();
 $('#dlgOk').onclick = () => {
   const f = state.floors[state.active], [rm] = f.images.splice(f.images.findIndex(i => i.id === pend), 1);
   if (state.sel === rm.id) state.sel = null;
-  back = null; $('#dlg').close(); render(); toast(`‘${rm.name}’을 삭제했어요`); $('#addImg').focus();
+  back = null; $('#dlg').close(); render(); toast(`‘${rm.name}’ 사진을 삭제했어요`); $('#addImg').focus();
 };
 $('#dlg').addEventListener('close', () => back?.focus());
 

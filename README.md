@@ -185,7 +185,7 @@ python3 -m http.server 5173
 
 - **360이미지 실제 업로드**: JPG·PNG를 고르거나 끌어다 놓으면 사진의 EXIF GPS를 읽는다([exifr](https://github.com/MikeKovarik/exifr)). GPS가 있는 사진은 지도에 자동으로 찍히고(`✓ GPS로 찍힘`), 없는 사진만 직접 찍는다.
 - **평면도 실제 업로드**: 직접 업로드를 고르면 내 컴퓨터의 PNG·JPG(20MB까지)를 지도 자리에 보여주고 그 위에 사진 위치를 찍는다.
-- **네이버 지도 실제 연동**: `index.html`의 `NAVER_KEY`에 네이버 클라우드 플랫폼 Maps **Client ID**를 넣으면 Maps JavaScript API v3(`maps.js?ncpKeyId=...`)를 불러와 실제 지도를 띄우고, GPS 위치에 마커를 찍고 모든 사진이 보이게 화면을 맞춘다. 지도를 클릭하거나, 키보드로는 방향키로 지도를 옮겨 가운데 십자선에 맞추고 Enter로 찍는다.
+- **네이버 지도 실제 연동 (연결됨)**: `index.html`의 `NAVER_KEY`에 네이버 클라우드 플랫폼 Maps **Client ID**가 들어 있어(도메인 제한 공개 키) Maps JavaScript API v3(`maps.js?ncpKeyId=...`)를 불러와 실제 지도를 띄우고, GPS 위치에 마커를 찍고 모든 사진이 보이게 화면을 맞춘다. 지도를 클릭하거나, 키보드로는 방향키로 지도를 옮겨 가운데 십자선에 맞추고 Enter로 찍는다.
   - NCP 콘솔에서 Maps 애플리케이션의 **Web 서비스 URL**에 `https://seundyuu.github.io`, `http://localhost:5173`을 등록해야 한다.
   - 키가 비어 있거나 인증에 실패하면 예시 지도로 자동 전환하고 안내 문구를 보여준다. (사진 GPS는 사진끼리의 상대 위치로 펼쳐 보여줌)
   - Claude 아티팩트 링크는 보안 정책상 네이버 스크립트를 불러올 수 없어 항상 예시 지도로 보인다. 실제 지도는 GitHub Pages 주소에서 확인.

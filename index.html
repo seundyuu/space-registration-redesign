@@ -397,8 +397,8 @@ const newMap = () => ({ id: uid++, label: '', source: null, map: false, images: 
 const SRC = { naver: '네이버 지도', upload: '직접 올린 지도' };
 // 네이버 클라우드 플랫폼 Maps Client ID. 등록한 서비스 URL(도메인)에서만 동작하는 공개용 키다.
 // 비워 두거나 인증에 실패하면 예시 지도로 대신 보여준다.
-const NAVER_KEY = '';
-const nv = { status: 'none' }; // none | nokey | loading | ready | failed
+const NAVER_KEY = '1xdhtvv4d4';
+const nv = { status: 'none' }; // none | nokey | loading | ready | failed(인증 실패) | blocked(스크립트를 못 불러옴)
 const DEFAULT_LL = { lat: 37.5666, lng: 126.9784 };
 const isReal = m => m.source === 'naver' && nv.status === 'ready';
 // 시안용 GPS 좌표(지도 위 %). 3장 중 1장은 GPS가 없는 사진으로 가정
@@ -432,8 +432,8 @@ function loadNaver() {
   window.navermap_authFailure = () => { nv.status = 'failed'; switchPins(); render(); };
   const sc = document.createElement('script');
   sc.src = 'https://oapi.map.naver.com/openapi/v3/maps.js?ncpKeyId=' + encodeURIComponent(NAVER_KEY);
-  sc.onload = () => { nv.status = window.naver?.maps ? 'ready' : 'failed'; switchPins(); render(); };
-  sc.onerror = () => { nv.status = 'failed'; switchPins(); render(); };
+  sc.onload = () => { nv.status = window.naver?.maps ? 'ready' : 'blocked'; switchPins(); render(); };
+  sc.onerror = () => { nv.status = 'blocked'; switchPins(); render(); };
   document.head.appendChild(sc);
 }
 // 지도 종류가 바뀌면(예시 ↔ 실제) 자동으로 찍힌 핀을 그 지도 좌표로 다시 찍는다
@@ -662,7 +662,7 @@ function workspace(m) {
   const c = state.cursor;
   return `<div class="ws">
     <div class="ws-map">
-      ${m.source === 'naver' && nv.status !== 'ready' ? `<p class="nv-note t-xs" role="status">${{ loading: '네이버 지도를 불러오는 중이에요…', nokey: '지금은 예시 지도예요. 네이버 지도 Client ID를 넣으면 실제 지도로 바뀌어요.', failed: '네이버 지도 인증에 실패해 예시 지도로 보여요. Client ID와 등록한 서비스 URL을 확인해 주세요.' }[nv.status] || ''}</p>` : ''}
+      ${m.source === 'naver' && nv.status !== 'ready' ? `<p class="nv-note t-xs" role="status">${{ loading: '네이버 지도를 불러오는 중이에요…', nokey: '지금은 예시 지도예요. 네이버 지도 Client ID를 넣으면 실제 지도로 바뀌어요.', failed: '네이버 지도 인증에 실패해 예시 지도로 보여요. Client ID와 등록한 서비스 URL을 확인해 주세요.', blocked: '이 화면에서는 네이버 지도를 불러올 수 없어 예시 지도로 보여요. 실제 지도는 GitHub Pages 주소에서 볼 수 있어요.' }[nv.status] || ''}</p>` : ''}
       <div class="floorplan${s ? '' : ' idle'}${isReal(m) ? ' real' : ''}" id="plan" role="application" tabindex="0" aria-describedby="wsGuide crossPos"
         aria-label="${esc(dn(m))} ${SRC[m.source]}${s ? `, ‘${esc(s.name)}’ 위치 고르는 중` : ''}">
         ${isReal(m) ? '<div class="nmap-slot" id="nmapSlot"></div>'

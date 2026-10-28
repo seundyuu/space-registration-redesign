@@ -1,0 +1,688 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>공간 등록 개선 시안</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+/* ── 토큰: 모든 텍스트/배경 조합 4.5:1 이상 (주석에 대비값) ── */
+:root {
+  --bg: #F4F5F7;
+  --surface: #FFFFFF;
+  --surface-2: #F8FAFC;
+  --text: #111827;          /* on surface 17.7:1 */
+  --text-muted: #4B5563;    /* on surface 7.6:1, on bg 7.0:1 */
+  --border: #D1D5DB;
+  --border-strong: #6B7280; /* UI 컴포넌트 경계 3:1 이상 */
+  --primary: #1D4ED8;       /* on white 6.7:1 */
+  --primary-weak: #EFF4FF;
+  --on-primary: #FFFFFF;
+  --success: #166534;       /* on white 7.1:1 */
+  --success-weak: #ECFDF3;
+  --warning: #92400E;       /* on white 7.1:1 */
+  --warning-weak: #FFF7ED;
+  --danger: #B91C1C;        /* on white 6.5:1 */
+  --focus: #F59E0B;
+  --radius: 12px;
+  --shadow: 0 1px 2px rgba(17,24,39,.06), 0 4px 16px rgba(17,24,39,.06);
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0B0F17; --surface: #141A24; --surface-2: #1B2230;
+    --text: #F3F4F6; --text-muted: #B4BCC8; --border: #2C3545; --border-strong: #8A94A6;
+    --primary: #8DB2FF; --primary-weak: #1A2742; --on-primary: #0B0F17;
+    --success: #6EE7A0; --success-weak: #11281C; --warning: #FCC07A; --warning-weak: #2B1E0E;
+    --danger: #FCA5A5; --shadow: none;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0B0F17; --surface: #141A24; --surface-2: #1B2230;
+  --text: #F3F4F6; --text-muted: #B4BCC8; --border: #2C3545; --border-strong: #8A94A6;
+  --primary: #8DB2FF; --primary-weak: #1A2742; --on-primary: #0B0F17;
+  --success: #6EE7A0; --success-weak: #11281C; --warning: #FCC07A; --warning-weak: #2B1E0E;
+  --danger: #FCA5A5; --shadow: none;
+}
+
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+html, body { margin: 0; }
+body {
+  background: var(--bg); color: var(--text);
+  font: 15px/1.6 "Noto Sans KR", system-ui, -apple-system, "Apple SD Gothic Neo", sans-serif;
+}
+button, input { font: inherit; color: inherit; }
+:focus-visible { outline: 3px solid var(--focus); outline-offset: 2px; border-radius: 6px; }
+.sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+.skip { position: absolute; left: 16px; top: -48px; background: var(--primary); color: var(--on-primary); padding: 8px 12px; border-radius: 8px; z-index: 50; }
+.skip:focus { top: 8px; }
+
+/* ── 상단 ── */
+.topbar { display: flex; align-items: center; gap: 16px; height: 60px; padding: 0 24px; background: var(--surface); border-bottom: 1px solid var(--border); }
+.brand { font-weight: 700; letter-spacing: -.01em; }
+.brand small { font-weight: 500; margin-left: 4px; }
+.crumbs { display: flex; gap: 8px; color: var(--text-muted); font-size: 14px; margin: 0; padding: 0; list-style: none; }
+.crumbs li + li::before { content: "/"; margin-right: 8px; }
+.crumbs a { color: inherit; }
+.topbar .spacer { flex: 1; }
+.icon-btn { width: 40px; height: 40px; display: grid; place-items: center; border-radius: 999px; border: 1px solid var(--border); background: var(--surface); cursor: pointer; }
+
+/* ── 레이아웃 ── */
+.shell { display: grid; grid-template-columns: 280px 1fr; min-height: calc(100vh - 60px); }
+.shell.no-rail { grid-template-columns: 1fr; }
+.shell.no-rail .rail { display: none; }
+.rail { background: var(--surface); border-right: 1px solid var(--border); padding: 24px 16px; }
+.rail h2 { font-size: 13px; color: var(--text-muted); font-weight: 500; margin: 0 0 4px; }
+.rail .space-name { font-size: 18px; font-weight: 700; margin: 0 0 20px; word-break: keep-all; }
+.floor-nav { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+.floor-nav button {
+  width: 100%; text-align: left; display: grid; grid-template-columns: 1fr auto; gap: 2px 8px;
+  padding: 12px; border-radius: 10px; border: 1px solid var(--border); background: var(--surface); cursor: pointer;
+}
+.floor-nav button[aria-current="true"] { border: 2px solid var(--primary); padding: 11px; background: var(--primary-weak); }
+.floor-nav .f-name { font-weight: 700; }
+.floor-nav .f-meta { grid-column: 1 / -1; font-size: 13px; color: var(--text-muted); }
+.rail-note { margin-top: 20px; font-size: 13px; color: var(--text-muted); }
+
+main { display: flex; flex-direction: column; min-width: 0; }
+.content { flex: 1; width: 100%; max-width: 1040px; margin: 0 auto; padding: 28px 32px 120px; }
+
+/* ── 스테퍼 ── */
+.stepper { list-style: none; margin: 0 0 28px; padding: 0; display: flex; flex-wrap: wrap; gap: 8px 4px; align-items: center; }
+.stepper li { display: flex; align-items: center; gap: 8px; font-size: 14px; color: var(--text-muted); }
+.stepper li + li::before { content: ""; width: 24px; height: 1px; background: var(--border-strong); margin-right: 4px; }
+.stepper .num { width: 26px; height: 26px; border-radius: 999px; display: grid; place-items: center; font-size: 13px; font-weight: 700; border: 1px solid var(--border-strong); }
+.stepper li[aria-current="step"] { color: var(--text); font-weight: 700; }
+.stepper li[aria-current="step"] .num { background: var(--primary); color: var(--on-primary); border-color: var(--primary); }
+.stepper li.done .num { background: var(--success-weak); color: var(--success); border-color: var(--success); }
+.stepper li.skipped { text-decoration: line-through; }
+
+h1 { font-size: 28px; line-height: 1.3; letter-spacing: -.02em; margin: 0 0 8px; }
+.lead { color: var(--text-muted); margin: 0 0 28px; }
+
+/* ── 폼 ── */
+.field { margin-bottom: 28px; max-width: 480px; }
+.field label, .legend { display: block; font-weight: 700; margin-bottom: 8px; }
+.req { color: var(--danger); margin-left: 2px; }
+.input { width: 100%; height: 48px; padding: 0 14px; border-radius: 10px; border: 1px solid var(--border-strong); background: var(--surface); }
+.input[aria-invalid="true"] { border: 2px solid var(--danger); }
+.hint { font-size: 13px; color: var(--text-muted); margin-top: 6px; }
+.error { font-size: 13px; color: var(--danger); margin-top: 6px; display: flex; gap: 6px; align-items: center; }
+fieldset { border: 0; margin: 0; padding: 0; min-width: 0; }
+
+/* 규모 선택 카드 = 네이티브 라디오 (화살표 키 지원) */
+.choice-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 16px; max-width: 760px; }
+.choice { position: relative; display: block; border: 1px solid var(--border-strong); border-radius: var(--radius); background: var(--surface); cursor: pointer; overflow: hidden; }
+.choice input { position: absolute; opacity: 0; inset: 0; cursor: pointer; }
+.choice .art { background: var(--surface-2); height: 150px; display: grid; place-items: center; border-bottom: 1px solid var(--border); }
+.choice .body { padding: 16px 18px 18px; }
+.choice .title { font-size: 17px; font-weight: 700; display: flex; align-items: center; gap: 8px; }
+.choice .radio-dot { width: 20px; height: 20px; border-radius: 999px; border: 2px solid var(--border-strong); display: grid; place-items: center; flex: none; }
+.choice .desc { color: var(--text-muted); font-size: 14px; margin: 4px 0 10px; }
+.chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.chip { font-size: 12px; padding: 2px 10px; border-radius: 999px; border: 1px solid var(--border); color: var(--text-muted); }
+.choice:has(input:checked) { border: 2px solid var(--primary); box-shadow: 0 0 0 3px var(--primary-weak); }
+.choice:has(input:checked) .radio-dot { border-color: var(--primary); }
+.choice:has(input:checked) .radio-dot::after { content: ""; width: 10px; height: 10px; border-radius: 999px; background: var(--primary); }
+.choice:has(input:focus-visible) { outline: 3px solid var(--focus); outline-offset: 2px; }
+.choice .selected-tag { display: none; position: absolute; top: 10px; right: 10px; font-size: 12px; font-weight: 700; color: var(--on-primary); background: var(--primary); padding: 2px 8px; border-radius: 999px; }
+.choice:has(input:checked) .selected-tag { display: block; }
+
+/* 층수 스테퍼 */
+.counter { display: inline-flex; align-items: center; border: 1px solid var(--border-strong); border-radius: 10px; overflow: hidden; background: var(--surface); }
+.counter button { width: 48px; height: 48px; border: 0; background: transparent; cursor: pointer; font-size: 20px; }
+.counter button:disabled { color: var(--border-strong); cursor: not-allowed; }
+.counter output { min-width: 64px; text-align: center; font-weight: 700; font-size: 18px; border-inline: 1px solid var(--border); line-height: 48px; }
+.row { display: flex; gap: 24px; flex-wrap: wrap; align-items: flex-end; margin-bottom: 24px; }
+.check { display: inline-flex; gap: 8px; align-items: center; min-height: 44px; cursor: pointer; }
+.check input { width: 20px; height: 20px; accent-color: var(--primary); }
+
+.floor-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; max-width: 560px; }
+.floor-list li { display: grid; grid-template-columns: 56px 1fr auto; gap: 12px; align-items: center; padding: 10px 12px; border: 1px solid var(--border); border-radius: 10px; background: var(--surface); }
+.floor-badge { font-weight: 700; text-align: center; background: var(--surface-2); border: 1px solid var(--border); border-radius: 8px; padding: 4px 0; font-size: 14px; }
+.floor-list .input { height: 40px; }
+.mini-actions { display: flex; gap: 4px; }
+.mini-actions button { width: 36px; height: 36px; border: 1px solid var(--border); border-radius: 8px; background: var(--surface); cursor: pointer; }
+.mini-actions button:disabled { opacity: .4; cursor: not-allowed; }
+
+/* ── 탭 ── */
+.tabs { display: flex; gap: 4px; border-bottom: 1px solid var(--border); margin-bottom: 20px; overflow-x: auto; }
+.tab { padding: 10px 16px; min-height: 44px; border: 0; background: transparent; cursor: pointer; color: var(--text-muted); border-bottom: 3px solid transparent; white-space: nowrap; display: flex; gap: 6px; align-items: center; }
+.tab[aria-selected="true"] { color: var(--text); font-weight: 700; border-bottom-color: var(--primary); }
+
+/* ── 카드 ── */
+.card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); box-shadow: var(--shadow); padding: 20px; margin-bottom: 20px; }
+.card-head { display: flex; align-items: center; gap: 12px; margin-bottom: 14px; flex-wrap: wrap; }
+.card-head h2 { font-size: 17px; margin: 0; display: flex; gap: 8px; align-items: center; }
+.card-head .spacer { flex: 1; }
+.step-dot { width: 24px; height: 24px; border-radius: 999px; background: var(--text); color: var(--surface); font-size: 13px; display: grid; place-items: center; }
+
+.status { display: inline-flex; gap: 6px; align-items: center; font-size: 13px; font-weight: 500; padding: 2px 10px; border-radius: 999px; }
+.status.ok { color: var(--success); background: var(--success-weak); }
+.status.todo { color: var(--warning); background: var(--warning-weak); }
+
+.btn { min-height: 44px; padding: 0 18px; border-radius: 10px; border: 1px solid var(--border-strong); background: var(--surface); cursor: pointer; font-weight: 500; display: inline-flex; gap: 8px; align-items: center; justify-content: center; }
+.btn.primary { background: var(--primary); color: var(--on-primary); border-color: var(--primary); font-weight: 700; }
+.btn.danger { color: #fff; background: #B91C1C; border-color: #B91C1C; }
+.btn.ghost { border-color: transparent; }
+.btn[aria-disabled="true"] { opacity: .55; cursor: not-allowed; }
+
+.drop { border: 2px dashed var(--border-strong); border-radius: var(--radius); padding: 28px; text-align: center; background: var(--surface-2); }
+.drop p { margin: 4px 0 14px; color: var(--text-muted); }
+
+.map-wrap { display: grid; grid-template-columns: 1fr 240px; gap: 16px; }
+.map { position: relative; border: 1px solid var(--border); border-radius: 10px; overflow: hidden; background: var(--surface-2); aspect-ratio: 16 / 10; cursor: crosshair; }
+.map svg.plan { width: 100%; height: 100%; display: block; }
+.pin { position: absolute; transform: translate(-50%, -100%); display: flex; flex-direction: column; align-items: center; pointer-events: none; }
+.pin b { background: var(--primary); color: var(--on-primary); font-size: 12px; min-width: 24px; height: 24px; padding: 0 6px; border-radius: 999px; display: grid; place-items: center; border: 2px solid var(--surface); }
+.pin span { font-size: 11px; background: var(--surface); color: var(--text); padding: 0 4px; border-radius: 4px; margin-top: 2px; border: 1px solid var(--border); white-space: nowrap; }
+.pin-list h3 { font-size: 14px; margin: 0 0 8px; }
+.pin-list ol { margin: 0; padding-left: 20px; font-size: 14px; }
+.pin-list p { font-size: 13px; color: var(--text-muted); }
+
+.img-grid { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); gap: 12px; }
+.img-card { border: 1px solid var(--border); border-radius: 10px; overflow: hidden; background: var(--surface); }
+.img-card[aria-current="true"] { border: 2px solid var(--primary); }
+.thumb { height: 96px; position: relative; }
+.thumb .n { position: absolute; left: 8px; top: 8px; background: rgba(17,24,39,.85); color: #fff; font-size: 12px; padding: 0 8px; border-radius: 999px; }
+.img-body { padding: 8px 10px 10px; }
+.img-name { font-weight: 500; font-size: 14px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.img-actions { display: flex; gap: 6px; margin-top: 8px; }
+.img-actions button { flex: 1; min-height: 36px; font-size: 13px; border: 1px solid var(--border); border-radius: 8px; background: var(--surface); cursor: pointer; }
+.img-actions .del { flex: 0 0 36px; color: var(--danger); }
+.group-title { font-size: 14px; font-weight: 700; margin: 16px 0 8px; color: var(--text-muted); }
+
+/* ── 검토 ── */
+table { border-collapse: collapse; width: 100%; font-size: 14px; }
+caption { text-align: left; font-weight: 700; padding-bottom: 8px; }
+th, td { padding: 10px 12px; border-bottom: 1px solid var(--border); text-align: left; }
+thead th { background: var(--surface-2); font-weight: 700; }
+tbody th { font-weight: 700; }
+th.num, td.num { text-align: right; font-variant-numeric: tabular-nums; }
+
+.bars { display: grid; gap: 10px; }
+.bar-row { display: grid; grid-template-columns: 64px 1fr 88px; gap: 12px; align-items: center; font-size: 14px; }
+.bar-track { height: 18px; border-radius: 4px; background: var(--surface-2); border: 1px solid var(--border); overflow: hidden; display: flex; }
+.bar-placed { background: var(--primary); }
+.bar-unplaced { background: repeating-linear-gradient(45deg, var(--warning) 0 3px, transparent 3px 7px); }
+.legend-row { display: flex; gap: 16px; font-size: 13px; color: var(--text-muted); margin-top: 10px; flex-wrap: wrap; }
+.sw { display: inline-block; width: 14px; height: 14px; border-radius: 3px; vertical-align: -2px; margin-right: 6px; border: 1px solid var(--border-strong); }
+
+/* ── 하단 고정 액션바 (피츠의 법칙) ── */
+.actionbar { position: sticky; bottom: 0; background: var(--surface); border-top: 1px solid var(--border); }
+.actionbar-inner { max-width: 1040px; margin: 0 auto; padding: 12px 32px; display: flex; gap: 12px; align-items: center; }
+.actionbar .msg { flex: 1; font-size: 14px; color: var(--text-muted); }
+.actionbar .btn.primary { min-width: 160px; min-height: 48px; }
+
+/* ── 모달 ── */
+dialog { border: 0; border-radius: 16px; padding: 24px; max-width: 420px; width: calc(100% - 32px); background: var(--surface); color: var(--text); }
+dialog::backdrop { background: rgba(0,0,0,.5); }
+dialog h2 { margin: 0 0 8px; font-size: 18px; }
+dialog p { margin: 0 0 20px; color: var(--text-muted); }
+.dialog-actions { display: flex; gap: 8px; justify-content: flex-end; }
+
+.toast { position: fixed; left: 50%; bottom: 96px; transform: translateX(-50%); background: var(--text); color: var(--surface); padding: 10px 16px; border-radius: 10px; font-size: 14px; opacity: 0; transition: opacity .2s; pointer-events: none; }
+.toast.show { opacity: 1; }
+
+@media (max-width: 860px) {
+  .shell { grid-template-columns: 1fr; }
+  .rail { border-right: 0; border-bottom: 1px solid var(--border); padding: 16px; }
+  .floor-nav { grid-auto-flow: column; grid-auto-columns: minmax(150px, 1fr); overflow-x: auto; }
+  .content { padding: 20px 16px 120px; }
+  .actionbar-inner { padding: 12px 16px; }
+  .actionbar .msg { display: none; }
+  .map-wrap { grid-template-columns: 1fr; }
+  .crumbs { display: none; }
+  h1 { font-size: 23px; }
+}
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+</style>
+</head>
+<body>
+<a class="skip" href="#content">본문으로 건너뛰기</a>
+
+<header class="topbar">
+  <span class="brand">VT PARTNERS<small>Admin</small></span>
+  <nav aria-label="현재 위치"><ol class="crumbs"><li><a href="#">내 공간</a></li><li aria-current="page">새 공간 만들기</li></ol></nav>
+  <span class="spacer"></span>
+  <button class="icon-btn" id="themeBtn" type="button" aria-label="다크 모드로 전환">
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg>
+  </button>
+</header>
+
+<div class="shell no-rail" id="shell">
+  <!-- 층 구성 레일: 규모 선택 이후에만 노출 (점진적 공개) -->
+  <aside class="rail" aria-labelledby="railTitle">
+    <h2 id="railTitle">등록 중인 공간</h2>
+    <p class="space-name" id="railName">—</p>
+    <ul class="floor-nav" id="floorNav"></ul>
+    <p class="rail-note" id="railNote"></p>
+  </aside>
+
+  <main>
+    <div class="content" id="content" tabindex="-1">
+      <nav aria-label="등록 단계"><ol class="stepper" id="stepper"></ol></nav>
+      <div id="view" aria-live="polite"></div>
+    </div>
+    <div class="actionbar">
+      <div class="actionbar-inner">
+        <button class="btn ghost" type="button" id="prevBtn">이전</button>
+        <span class="msg" id="barMsg" aria-live="polite"></span>
+        <button class="btn primary" type="button" id="nextBtn">다음</button>
+      </div>
+    </div>
+  </main>
+</div>
+
+<dialog id="confirmDlg" aria-labelledby="dlgTitle" aria-describedby="dlgDesc">
+  <h2 id="dlgTitle">이미지를 삭제할까요?</h2>
+  <p id="dlgDesc"></p>
+  <div class="dialog-actions">
+    <button class="btn" type="button" value="cancel" id="dlgCancel">취소</button>
+    <button class="btn danger" type="button" id="dlgOk">삭제</button>
+  </div>
+</dialog>
+<div class="toast" id="toast" role="status"></div>
+
+<script>
+const STEPS = ['기본 정보', '층 구성', '지도·360 등록', '검토·공개'];
+const PALETTE = [['#7DD3FC','#22C55E'],['#FDE68A','#FB923C'],['#C4B5FD','#6366F1'],['#FBCFE8','#DB2777'],['#A7F3D0','#0D9488'],['#BAE6FD','#0369A1']];
+const SAMPLE_NAMES = ['입구', '로비', '복도', '라운지', '카페', '테라스', '회의실', '계단'];
+
+const state = {
+  step: 0,
+  name: '',
+  scale: null,          // 'single' | 'multi'
+  basement: false,
+  floors: [],           // {id, label, map:boolean, images:[{id,name,pin:{x,y}|null,color}]}
+  activeFloor: 0,
+  selectedImg: null,
+  visibility: 'private',
+  touched: false,
+};
+let uid = 1;
+
+const $ = (s, el = document) => el.querySelector(s);
+const esc = s => String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+
+function makeFloors(count, basement) {
+  const prev = state.floors;
+  const labels = [];
+  if (basement) labels.push('B1');
+  for (let i = 1; labels.length < count; i++) labels.push(i + '층');
+  state.floors = labels.map((label, i) => prev[i] ? { ...prev[i], label: prev[i].custom ? prev[i].label : label } : { id: uid++, label, map: false, images: [] });
+  state.activeFloor = Math.min(state.activeFloor, state.floors.length - 1);
+}
+
+function floorDone(f) { return f.map && f.images.length > 0 && f.images.every(i => i.pin); }
+function placedCount(f) { return f.images.filter(i => i.pin).length; }
+
+/* ── 스테퍼 ── */
+function renderStepper() {
+  $('#stepper').innerHTML = STEPS.map((s, i) => {
+    const skipped = i === 1 && state.scale === 'single';
+    const cls = [i < state.step ? 'done' : '', skipped ? 'skipped' : ''].join(' ');
+    const cur = i === state.step ? ' aria-current="step"' : '';
+    const mark = i < state.step ? '✓' : i + 1;
+    const sr = i < state.step ? ' (완료)' : skipped ? ' (단일 공간은 건너뜀)' : '';
+    return `<li class="${cls}"${cur}><span class="num" aria-hidden="true">${mark}</span>${s}<span class="sr-only">${sr}</span></li>`;
+  }).join('');
+}
+
+/* ── 좌측 레일 ── */
+function renderRail() {
+  const show = state.step >= 1 && state.scale;
+  $('#shell').classList.toggle('no-rail', !show);
+  if (!show) return;
+  $('#railName').textContent = state.name || '이름 없는 공간';
+  $('#floorNav').innerHTML = state.floors.map((f, i) => {
+    const meta = `지도 ${f.map ? '등록됨' : '없음'} · 360 ${placedCount(f)}/${f.images.length} 배치`;
+    const status = floorDone(f) ? '<span class="status ok">✓ 완료</span>' : '<span class="status todo">! 진행 중</span>';
+    const cur = state.step === 2 && i === state.activeFloor ? ' aria-current="true"' : '';
+    return `<li><button type="button" data-floor="${i}"${cur}><span class="f-name">${esc(f.label)}</span>${status}<span class="f-meta">${meta}</span></button></li>`;
+  }).join('');
+  const done = state.floors.filter(floorDone).length;
+  $('#railNote').textContent = `${state.floors.length}개 층 중 ${done}개 완료`;
+}
+
+/* ── 단계별 화면 ── */
+function viewBasics() {
+  const err = state.touched && !state.name.trim();
+  const scaleErr = state.touched && !state.scale;
+  return `
+  <h1>어떤 공간을 등록하나요?</h1>
+  <p class="lead">이름과 규모만 정하면 됩니다. 규모는 나중에 언제든 바꿀 수 있어요.</p>
+  <div class="field">
+    <label for="nameInput">공간명<span class="req" aria-hidden="true">*</span></label>
+    <input class="input" id="nameInput" autocomplete="off" required aria-required="true"
+      placeholder="예: 가평 휴밸리" value="${esc(state.name)}"
+      aria-invalid="${err}" aria-describedby="nameHint${err ? ' nameErr' : ''}">
+    <div class="hint" id="nameHint">방문자에게 보이는 이름입니다. 30자 이내.</div>
+    ${err ? '<div class="error" id="nameErr"><span aria-hidden="true">⚠</span>공간명을 입력해 주세요.</div>' : ''}
+  </div>
+  <fieldset aria-describedby="${scaleErr ? 'scaleErr' : ''}">
+    <legend class="legend">공간 규모<span class="req" aria-hidden="true">*</span></legend>
+    <div class="choice-grid">
+      ${choiceCard('single', '단일 공간', '지도 1장에 모두 담기는 공간', ['카페', '진료실', '소형 매장', '원룸'], artSingle())}
+      ${choiceCard('multi', '복합 공간', '층이나 구역마다 지도가 따로 필요한 공간', ['종합 병원', '상가 건물', '캠핑장'], artMulti())}
+    </div>
+    ${scaleErr ? '<div class="error" id="scaleErr"><span aria-hidden="true">⚠</span>공간 규모를 선택해 주세요.</div>' : ''}
+  </fieldset>`;
+}
+function choiceCard(value, title, desc, chips, art) {
+  return `<label class="choice">
+    <input type="radio" name="scale" value="${value}" ${state.scale === value ? 'checked' : ''}>
+    <span class="selected-tag" aria-hidden="true">선택됨</span>
+    <div class="art" aria-hidden="true">${art}</div>
+    <div class="body">
+      <div class="title"><span class="radio-dot" aria-hidden="true"></span>${title}</div>
+      <p class="desc">${desc}</p>
+      <div class="chips" aria-label="예시">${chips.map(c => `<span class="chip">${c}</span>`).join('')}</div>
+    </div></label>`;
+}
+function artSingle() {
+  return `<svg width="230" height="110" viewBox="0 0 230 110"><polygon points="100,15 175,52 100,90 25,52" fill="var(--surface)" stroke="var(--border-strong)" stroke-width="1.5"/>
+  <circle cx="100" cy="40" r="5" fill="var(--primary)"/><circle cx="70" cy="56" r="5" fill="var(--primary)"/><circle cx="125" cy="60" r="5" fill="var(--primary)"/>
+  <text x="182" y="56" font-size="12" fill="var(--text-muted)">지도 1</text></svg>`;
+}
+function artMulti() {
+  const layer = (y, label, dots) => `<polygon points="90,${y} 150,${y + 22} 90,${y + 44} 30,${y + 22}" fill="var(--surface)" stroke="var(--border-strong)" stroke-width="1.5"/>${dots ? `<circle cx="90" cy="${y + 14}" r="4" fill="var(--primary)"/><circle cx="68" cy="${y + 24}" r="4" fill="var(--primary)"/><rect x="104" y="${y + 20}" width="8" height="8" fill="var(--primary)"/>` : ''}<line x1="150" y1="${y + 22}" x2="162" y2="${y + 22}" stroke="var(--border-strong)"/><text x="166" y="${y + 26}" font-size="12" fill="var(--text-muted)">${label}</text>`;
+  return `<svg width="220" height="120" viewBox="0 0 220 120">${layer(56, '1층', false)}${layer(34, '2층', false)}${layer(10, '3층', true)}</svg>`;
+}
+
+function viewFloors() {
+  const n = state.floors.length;
+  return `
+  <h1>층을 구성해 주세요</h1>
+  <p class="lead">층 수를 정하면 아래 목록이 바로 맞춰집니다. 이름은 직접 바꿀 수 있어요.</p>
+  <div class="row">
+    <div>
+      <span class="legend" id="countLabel">총 층수</span>
+      <div class="counter" role="group" aria-labelledby="countLabel">
+        <button type="button" id="dec" aria-label="층 하나 빼기" ${n <= 2 ? 'disabled' : ''}>−</button>
+        <output id="countOut" aria-live="polite" aria-label="총 ${n}개 층">${n}</output>
+        <button type="button" id="inc" aria-label="층 하나 더하기" ${n >= 20 ? 'disabled' : ''}>+</button>
+      </div>
+    </div>
+    <label class="check"><input type="checkbox" id="basement" ${state.basement ? 'checked' : ''}>지하층(B1) 포함</label>
+  </div>
+  <ol class="floor-list" aria-label="층 목록">
+    ${state.floors.map((f, i) => `<li>
+      <span class="floor-badge" aria-hidden="true">${i + 1}</span>
+      <label class="sr-only" for="fl${f.id}">${i + 1}번째 층 이름</label>
+      <input class="input" id="fl${f.id}" data-rename="${i}" value="${esc(f.label)}">
+      <span class="mini-actions">
+        <button type="button" data-move="${i}" data-dir="-1" aria-label="${esc(f.label)} 위로" ${i === 0 ? 'disabled' : ''}>↑</button>
+        <button type="button" data-move="${i}" data-dir="1" aria-label="${esc(f.label)} 아래로" ${i === n - 1 ? 'disabled' : ''}>↓</button>
+      </span></li>`).join('')}
+  </ol>`;
+}
+
+function viewUpload() {
+  const f = state.floors[state.activeFloor];
+  const multi = state.floors.length > 1;
+  const groups = chunk(f.images, 6);
+  return `
+  <h1>${multi ? esc(f.label) + ' — ' : ''}지도와 360 이미지를 등록하세요</h1>
+  <p class="lead">① 지도를 올리고 → ② 360 이미지를 추가한 뒤 → ③ 이미지를 선택해 지도 위 위치를 찍으면 미니맵이 완성됩니다.</p>
+  ${multi ? `<div class="tabs" role="tablist" aria-label="층 선택">${state.floors.map((fl, i) => `
+    <button class="tab" role="tab" id="tab${i}" aria-controls="panel" aria-selected="${i === state.activeFloor}" tabindex="${i === state.activeFloor ? 0 : -1}" data-tab="${i}">
+      ${esc(fl.label)} <span aria-hidden="true">${floorDone(fl) ? '✓' : ''}</span><span class="sr-only">${floorDone(fl) ? '완료' : '진행 중'}</span></button>`).join('')}</div>` : ''}
+  <div id="panel" ${multi ? `role="tabpanel" aria-labelledby="tab${state.activeFloor}"` : ''}>
+    <section class="card" aria-labelledby="mapH">
+      <div class="card-head"><h2 id="mapH"><span class="step-dot" aria-hidden="true">1</span>지도(미니맵)</h2>
+        ${f.map ? '<span class="status ok">✓ 등록됨</span>' : '<span class="status todo">! 필요</span>'}
+        <span class="spacer"></span>${f.map ? '<button class="btn" type="button" id="removeMap">지도 교체</button>' : ''}</div>
+      ${f.map ? mapView(f) : `<div class="drop"><strong>평면도나 약도 이미지를 올려주세요</strong><p>PNG·JPG·PDF, 20MB 이하 · 파일을 끌어다 놓아도 됩니다</p>
+        <button class="btn primary" type="button" id="addMap">지도 파일 선택</button></div>`}
+    </section>
+    <section class="card" aria-labelledby="imgH">
+      <div class="card-head"><h2 id="imgH"><span class="step-dot" aria-hidden="true">2</span>360 이미지</h2>
+        <span class="status ${f.images.length ? 'ok' : 'todo'}">${f.images.length}장</span>
+        <span class="spacer"></span><button class="btn" type="button" id="addImgs">+ 360 이미지 추가</button></div>
+      ${f.images.length ? groups.map((g, gi) => `
+        ${groups.length > 1 ? `<h3 class="group-title">${gi * 6 + 1}–${gi * 6 + g.length}번</h3>` : ''}
+        <ul class="img-grid" role="list">${g.map(imgCard).join('')}</ul>`).join('')
+        : '<div class="drop"><strong>아직 360 이미지가 없어요</strong><p>여러 장을 한 번에 선택할 수 있어요</p></div>'}
+    </section>
+  </div>`;
+}
+function chunk(arr, n) { const out = []; for (let i = 0; i < arr.length; i += n) out.push(arr.slice(i, i + n)); return out; }
+function imgCard(img, idx) {
+  const f = state.floors[state.activeFloor];
+  const n = f.images.indexOf(img) + 1;
+  const sel = state.selectedImg === img.id;
+  return `<li class="img-card" ${sel ? 'aria-current="true"' : ''}>
+    <div class="thumb" style="background:linear-gradient(180deg,${img.color[0]},${img.color[1]})" role="img" aria-label="${esc(img.name)} 미리보기"><span class="n">${n}</span></div>
+    <div class="img-body"><div class="img-name">${esc(img.name)}</div>
+      ${img.pin ? '<span class="status ok">◉ 지도에 배치됨</span>' : '<span class="status todo">○ 미배치</span>'}
+      <div class="img-actions">
+        <button type="button" data-select="${img.id}" aria-pressed="${sel}" ${f.map ? '' : 'disabled title="지도를 먼저 등록하세요"'}>${sel ? '위치 찍는 중…' : img.pin ? '위치 수정' : '위치 지정'}</button>
+        <button type="button" class="del" data-del="${img.id}" aria-label="${esc(img.name)} 삭제">🗑</button>
+      </div></div></li>`;
+}
+function mapView(f) {
+  const sel = f.images.find(i => i.id === state.selectedImg);
+  const placed = f.images.filter(i => i.pin);
+  return `<div class="map-wrap">
+    <div class="map" id="map" role="application" tabindex="0" aria-label="${esc(f.label)} 지도. ${sel ? `'${esc(sel.name)}' 위치를 지정하려면 클릭하거나 Enter로 중앙에 배치하세요.` : '아래에서 이미지를 선택하면 위치를 지정할 수 있습니다.'}" aria-describedby="pinList">
+      <svg class="plan" viewBox="0 0 400 250" aria-hidden="true">
+        <rect x="20" y="20" width="360" height="210" fill="var(--surface)" stroke="var(--border-strong)" stroke-width="3"/>
+        <line x1="160" y1="20" x2="160" y2="140" stroke="var(--border-strong)" stroke-width="3"/>
+        <line x1="20" y1="140" x2="120" y2="140" stroke="var(--border-strong)" stroke-width="3"/>
+        <line x1="260" y1="100" x2="380" y2="100" stroke="var(--border-strong)" stroke-width="3"/>
+        <line x1="260" y1="100" x2="260" y2="230" stroke="var(--border-strong)" stroke-width="3"/>
+        <text x="80" y="85" font-size="13" fill="var(--text-muted)" text-anchor="middle">홀</text>
+        <text x="320" y="60" font-size="13" fill="var(--text-muted)" text-anchor="middle">카페</text>
+        <text x="320" y="170" font-size="13" fill="var(--text-muted)" text-anchor="middle">테라스</text>
+        <text x="200" y="190" font-size="13" fill="var(--text-muted)" text-anchor="middle">복도</text>
+      </svg>
+      ${placed.map(i => `<div class="pin" style="left:${i.pin.x}%;top:${i.pin.y}%"><b>${f.images.indexOf(i) + 1}</b><span>${esc(i.name)}</span></div>`).join('')}
+    </div>
+    <div class="pin-list" id="pinList">
+      <h3>배치 현황 ${placed.length}/${f.images.length}</h3>
+      ${sel ? `<p><strong>‘${esc(sel.name)}’</strong> 위치를 지도에서 클릭하세요.</p>` : '<p>이미지 카드의 ‘위치 지정’을 누른 뒤 지도를 클릭하세요.</p>'}
+      ${placed.length ? `<ol>${placed.map(i => `<li value="${f.images.indexOf(i) + 1}">${esc(i.name)}</li>`).join('')}</ol>` : ''}
+    </div></div>`;
+}
+
+function viewReview() {
+  const total = state.floors.reduce((s, f) => s + f.images.length, 0);
+  const max = Math.max(1, ...state.floors.map(f => f.images.length));
+  return `
+  <h1>마지막으로 확인해 주세요</h1>
+  <p class="lead">${esc(state.name)} · ${state.floors.length}개 층 · 360 이미지 ${total}장</p>
+  <section class="card" aria-labelledby="chartH">
+    <div class="card-head"><h2 id="chartH">층별 360 이미지 배치</h2></div>
+    <div class="bars" role="img" aria-label="층별 배치 현황. 아래 표에 같은 내용이 있습니다.">
+      ${state.floors.map(f => { const p = placedCount(f), u = f.images.length - p;
+        return `<div class="bar-row"><span>${esc(f.label)}</span>
+          <div class="bar-track"><div class="bar-placed" style="width:${p / max * 100}%"></div><div class="bar-unplaced" style="width:${u / max * 100}%"></div></div>
+          <span>${p}/${f.images.length} 배치</span></div>`; }).join('')}
+    </div>
+    <div class="legend-row" aria-hidden="true"><span><i class="sw" style="background:var(--primary)"></i>배치됨 (단색)</span><span><i class="sw" style="background:repeating-linear-gradient(45deg,var(--warning) 0 3px,transparent 3px 7px)"></i>미배치 (빗금)</span></div>
+  </section>
+  <section class="card">
+    <table>
+      <caption>층별 등록 현황</caption>
+      <thead><tr><th scope="col">층</th><th scope="col">지도</th><th scope="col" class="num">360 이미지</th><th scope="col" class="num">지도 배치</th><th scope="col">상태</th><th scope="col"><span class="sr-only">작업</span></th></tr></thead>
+      <tbody>${state.floors.map((f, i) => `<tr>
+        <th scope="row">${esc(f.label)}</th>
+        <td>${f.map ? '✓ 등록' : '✗ 없음'}</td>
+        <td class="num">${f.images.length}장</td>
+        <td class="num">${placedCount(f)} / ${f.images.length}</td>
+        <td>${floorDone(f) ? '<span class="status ok">✓ 완료</span>' : '<span class="status todo">! 미완료</span>'}</td>
+        <td><button class="btn ghost" type="button" data-goto="${i}">${esc(f.label)} 수정</button></td></tr>`).join('')}</tbody>
+    </table>
+  </section>
+  <fieldset class="card">
+    <legend class="legend" style="float:left;width:100%">공개 설정</legend>
+    <label class="check"><input type="radio" name="vis" value="private" ${state.visibility === 'private' ? 'checked' : ''}> 비공개로 저장 — 나만 볼 수 있어요 (권장: 확인 후 공개)</label><br>
+    <label class="check"><input type="radio" name="vis" value="public" ${state.visibility === 'public' ? 'checked' : ''}> 바로 공개 — 방문자에게 투어가 노출됩니다</label>
+  </fieldset>`;
+}
+
+/* ── 하단 액션바 ── */
+function blockers() {
+  if (state.step === 0) {
+    const b = [];
+    if (!state.name.trim()) b.push('공간명');
+    if (!state.scale) b.push('공간 규모');
+    return b.length ? b.join('·') + '을(를) 입력하면 다음으로 갈 수 있어요' : '';
+  }
+  if (state.step === 2) {
+    const f = state.floors[state.activeFloor];
+    if (!f.map) return `${f.label}: 지도를 먼저 등록하세요`;
+    if (!f.images.length) return `${f.label}: 360 이미지를 추가하세요`;
+    const u = f.images.length - placedCount(f);
+    if (u) return `${f.label}: 미배치 이미지 ${u}장 — 나중에 해도 됩니다`;
+  }
+  if (state.step === 3) {
+    const left = state.floors.filter(f => !floorDone(f)).length;
+    if (left) return `미완료 층 ${left}개 — 비공개로 저장한 뒤 이어서 등록할 수 있어요`;
+  }
+  return '';
+}
+function renderBar() {
+  $('#prevBtn').hidden = state.step === 0;
+  const last = state.step === 3;
+  const nextFloor = state.step === 2 && state.activeFloor < state.floors.length - 1;
+  $('#nextBtn').textContent = last ? (state.visibility === 'public' ? '공간 만들고 공개' : '공간 만들기') : nextFloor ? `다음: ${state.floors[state.activeFloor + 1].label}` : '다음';
+  const msg = blockers();
+  const hard = state.step === 0 && !!msg;
+  $('#nextBtn').setAttribute('aria-disabled', hard);
+  $('#barMsg').textContent = msg || (last ? '저장 후에도 언제든 수정할 수 있어요.' : '');
+}
+
+function render(focusHeading) {
+  renderStepper();
+  renderRail();
+  const v = [viewBasics, viewFloors, viewUpload, viewReview][state.step]();
+  $('#view').innerHTML = v;
+  renderBar();
+  if (focusHeading) { const h = $('#view h1'); h.tabIndex = -1; h.focus(); }
+}
+
+function go(step) {
+  if (step === 1 && state.scale === 'single') step = state.step < 1 ? 2 : 0;
+  state.step = Math.max(0, Math.min(3, step));
+  state.selectedImg = null;
+  render(true);
+}
+
+/* ── 이벤트 ── */
+document.addEventListener('input', e => {
+  if (e.target.id === 'nameInput') { state.name = e.target.value; renderBar(); }
+  if (e.target.dataset.rename) { const f = state.floors[+e.target.dataset.rename]; f.label = e.target.value; f.custom = true; renderRail(); }
+});
+document.addEventListener('change', e => {
+  if (e.target.name === 'scale') {
+    state.scale = e.target.value;
+    if (state.scale === 'single') { state.basement = false; makeFloors(1, false); state.floors[0].label = '1층'; }
+    else if (state.floors.length < 2) makeFloors(3, state.basement);
+    renderBar(); renderStepper();
+  }
+  if (e.target.id === 'basement') { state.basement = e.target.checked; state.floors.forEach(f => f.custom = false); makeFloors(state.floors.length, state.basement); render(); $('#basement').focus(); }
+  if (e.target.name === 'vis') { state.visibility = e.target.value; renderBar(); }
+});
+document.addEventListener('click', e => {
+  const t = e.target.closest('button, .map');
+  if (!t) return;
+  if (t.id === 'inc' || t.id === 'dec') {
+    makeFloors(state.floors.length + (t.id === 'inc' ? 1 : -1), state.basement);
+    render(); $('#' + t.id).focus(); return;
+  }
+  if (t.dataset.move) {
+    const i = +t.dataset.move, j = i + +t.dataset.dir, fl = state.floors;
+    [fl[i], fl[j]] = [fl[j], fl[i]]; render();
+    const same = $(`[data-move="${j}"][data-dir="${t.dataset.dir}"]`);
+    (same && !same.disabled ? same : $(`[data-move="${j}"]:not([disabled])`))?.focus(); return;
+  }
+  if (t.dataset.floor) { state.activeFloor = +t.dataset.floor; state.step = 2; state.selectedImg = null; render(true); return; }
+  if (t.dataset.tab) { selectTab(+t.dataset.tab); return; }
+  if (t.dataset.goto) { state.activeFloor = +t.dataset.goto; go(2); return; }
+  if (t.id === 'addMap') { state.floors[state.activeFloor].map = true; render(); toast('지도를 등록했어요'); $('#addImgs').focus(); return; }
+  if (t.id === 'removeMap') { const f = state.floors[state.activeFloor]; f.map = false; f.images.forEach(i => i.pin = null); state.selectedImg = null; render(); $('#addMap').focus(); return; }
+  if (t.id === 'addImgs') {
+    const f = state.floors[state.activeFloor];
+    for (let k = 0; k < 3; k++) {
+      const n = f.images.length;
+      f.images.push({ id: uid++, name: SAMPLE_NAMES[n % SAMPLE_NAMES.length] + (n >= SAMPLE_NAMES.length ? ' ' + (Math.floor(n / SAMPLE_NAMES.length) + 1) : ''), pin: null, color: PALETTE[n % PALETTE.length] });
+    }
+    render(); toast('360 이미지 3장을 추가했어요'); $('#addImgs').focus(); return;
+  }
+  if (t.dataset.select) { const id = +t.dataset.select; state.selectedImg = state.selectedImg === id ? null : id; render(); $('#map')?.focus(); return; }
+  if (t.dataset.del) { askDelete(+t.dataset.del, t); return; }
+  if (t.classList.contains('map') && state.selectedImg) {
+    const r = t.getBoundingClientRect();
+    placePin(((e.clientX - r.left) / r.width) * 100, ((e.clientY - r.top) / r.height) * 100);
+  }
+});
+document.addEventListener('keydown', e => {
+  if (e.target.id === 'map' && (e.key === 'Enter' || e.key === ' ') && state.selectedImg) { e.preventDefault(); placePin(50, 50); }
+  if (e.target.getAttribute('role') === 'tab') {
+    const n = state.floors.length, i = state.activeFloor;
+    const next = { ArrowRight: (i + 1) % n, ArrowLeft: (i - 1 + n) % n, Home: 0, End: n - 1 }[e.key];
+    if (next !== undefined) { e.preventDefault(); selectTab(next); }
+  }
+});
+function selectTab(i) { state.activeFloor = i; state.selectedImg = null; render(); $('#tab' + i).focus(); }
+function placePin(x, y) {
+  const f = state.floors[state.activeFloor];
+  const img = f.images.find(i => i.id === state.selectedImg);
+  img.pin = { x: Math.max(4, Math.min(96, x)), y: Math.max(12, Math.min(96, y)) };
+  const next = f.images.find(i => !i.pin);
+  state.selectedImg = next ? next.id : null;   // 다음 미배치 이미지로 자동 이동
+  render(); toast(`‘${img.name}’ 위치를 지정했어요${next ? ` · 다음: ${next.name}` : ''}`);
+  $('#map')?.focus();
+}
+
+/* 삭제 확인 모달: 네이티브 dialog = 포커스 트랩·Esc 닫기, 닫으면 원래 버튼으로 포커스 복귀 */
+let pendingDel = null, returnFocus = null;
+function askDelete(id, opener) {
+  const img = state.floors[state.activeFloor].images.find(i => i.id === id);
+  pendingDel = id; returnFocus = opener;
+  $('#dlgDesc').textContent = `‘${img.name}’을(를) 삭제하면 지도 위 위치도 함께 지워집니다. 삭제 후 10초 안에 되돌릴 수 있어요.`;
+  $('#confirmDlg').showModal(); $('#dlgCancel').focus();
+}
+$('#dlgCancel').onclick = () => $('#confirmDlg').close();
+$('#dlgOk').onclick = () => {
+  const f = state.floors[state.activeFloor];
+  const idx = f.images.findIndex(i => i.id === pendingDel);
+  const [removed] = f.images.splice(idx, 1);
+  if (state.selectedImg === removed.id) state.selectedImg = null;
+  returnFocus = null; $('#confirmDlg').close(); render();
+  toast(`‘${removed.name}’ 삭제됨`); $('#addImgs').focus();
+};
+$('#confirmDlg').addEventListener('close', () => { returnFocus?.focus(); });
+
+$('#prevBtn').onclick = () => {
+  if (state.step === 2 && state.activeFloor > 0) { selectTab(state.activeFloor - 1); return; }
+  go(state.step - 1);
+};
+$('#nextBtn').onclick = () => {
+  if (state.step === 0 && blockers()) {
+    state.touched = true; render();
+    (!state.name.trim() ? $('#nameInput') : $('input[name="scale"]')).focus(); return;
+  }
+  if (state.step === 2 && state.activeFloor < state.floors.length - 1) { selectTab(state.activeFloor + 1); return; }
+  if (state.step === 3) { toast(`‘${state.name}’ 공간을 만들었어요 (시안 데모)`); return; }
+  go(state.step + 1);
+};
+
+let tt;
+function toast(m) { const el = $('#toast'); el.textContent = m; el.classList.add('show'); clearTimeout(tt); tt = setTimeout(() => el.classList.remove('show'), 2400); }
+
+const themeBtn = $('#themeBtn');
+themeBtn.onclick = () => {
+  const dark = document.documentElement.dataset.theme === 'dark' || (!document.documentElement.dataset.theme && matchMedia('(prefers-color-scheme: dark)').matches);
+  document.documentElement.dataset.theme = dark ? 'light' : 'dark';
+  themeBtn.setAttribute('aria-label', dark ? '다크 모드로 전환' : '라이트 모드로 전환');
+};
+
+makeFloors(1, false);
+render();
+</script>
+</body>
+</html>

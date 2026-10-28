@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>공간 등록 개선 시안</title>
 <!--FONT--><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/pretendard@1.3.9/dist/web/variable/pretendardvariable.min.css"><!--/FONT-->
+<script src="https://cdn.jsdelivr.net/npm/exifr@7.1.3/dist/full.umd.js"></script>
 <style>
 /* 레이아웃: VT PARTNERS Admin 시안 그대로 — 상단 Navigation 60 / Sidebar 366 / GNB 60 + StepForm. 하단 고정 액션바만 추가.
    토큰: Figma 변수(460:1532) 그대로. ★ 표시는 접근성 기준을 맞추려고 추가·조정한 값 */
@@ -196,6 +197,13 @@ fieldset { border: 0; margin: 0; padding: 0; min-width: 0; }
 .menu [role="menuitem"][aria-disabled="true"] { color: var(--muted-foreground); cursor: not-allowed; }
 .menu .danger { color: var(--destructive); }
 .menu-sep { height: 1px; background: var(--border); margin: 4px -4px; }
+.floorplan.real { cursor: default; }
+.nmap-slot, .nmap { position: absolute; inset: 0; }
+.floorplan.real .cross { z-index: 5; }
+.plan-img { width: 100%; height: 100%; object-fit: contain; display: block; background: #fff; }
+.pin.static { position: relative; transform: translate(-0px, 0); }
+.nv-note { margin: 0 0 8px; padding: 8px 12px; border-radius: var(--radius-md); background: var(--secondary); color: var(--foreground); }
+.drop.over { border-color: var(--accent); background: var(--accent-bg); }
 .src-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 16px; }
 .src-card { display: flex; flex-direction: column; align-items: flex-start; gap: 8px; text-align: left; padding: 24px; border: 1px solid var(--border); border-radius: var(--radius-lg); background: var(--background); cursor: pointer; }
 .src-card:hover { border-color: var(--foreground); }
@@ -365,6 +373,8 @@ dialog p { margin: 0 0 16px; color: var(--muted-foreground); }
   </div>
 </dialog>
 <div class="toast" id="toast" role="status"></div>
+<input type="file" id="imgFile" accept="image/jpeg,image/png" multiple hidden>
+<input type="file" id="planFile" accept="image/jpeg,image/png" hidden>
 
 <script>
 const STEPS = [
@@ -385,13 +395,77 @@ const icon = (f, s = 20) => `<img src="assets/${f}.svg" width="${s}" height="${s
 // source: 'naver' = 360이미지 GPS로 실제 지도 불러오기(권장) / 'upload' = 평면도·안내도 직접 올리기
 const newMap = () => ({ id: uid++, label: '', source: null, map: false, images: [] });
 const SRC = { naver: '네이버 지도', upload: '직접 올린 지도' };
+// 네이버 클라우드 플랫폼 Maps Client ID. 등록한 서비스 URL(도메인)에서만 동작하는 공개용 키다.
+// 비워 두거나 인증에 실패하면 예시 지도로 대신 보여준다.
+const NAVER_KEY = '';
+const nv = { status: 'none' }; // none | nokey | loading | ready | failed
+const DEFAULT_LL = { lat: 37.5666, lng: 126.9784 };
+const isReal = m => m.source === 'naver' && nv.status === 'ready';
 // 시안용 GPS 좌표(지도 위 %). 3장 중 1장은 GPS가 없는 사진으로 가정
 const GPS = [[22, 62], [38, 40], [56, 30], [70, 58], [48, 74], [82, 34], [30, 82], [64, 18]];
 // 네이버 지도면 GPS가 있는 사진은 자동으로 위치가 찍힌다
 function autoPin(m) {
+  if (m.source !== 'naver') return 0;
   let k = 0;
-  if (m.source === 'naver') m.images.forEach(i => { if (i.gps && !i.pin) { i.pin = { x: i.gps[0], y: i.gps[1] }; i.auto = true; k++; } });
+  const real = isReal(m), lls = m.images.filter(i => i.ll).map(i => i.ll);
+  // 예시 지도일 때 실제 사진의 GPS는 사진들끼리의 상대 위치로 펼쳐 보여준다
+  const box = lls.length && {
+    a: Math.min(...lls.map(l => l.lat)), b: Math.max(...lls.map(l => l.lat)),
+    c: Math.min(...lls.map(l => l.lng)), d: Math.max(...lls.map(l => l.lng)) };
+  const rel = (v, lo, hi) => hi - lo < 1e-9 ? 50 : 15 + (v - lo) / (hi - lo) * 70;
+  m.images.forEach(i => {
+    if (i.pin) return;
+    if (real && i.ll) i.pin = { lat: i.ll.lat, lng: i.ll.lng };
+    else if (!real && i.gps) i.pin = { x: i.gps[0], y: i.gps[1] };
+    else if (!real && i.ll) i.pin = { x: rel(i.ll.lng, box.c, box.d), y: 100 - rel(i.ll.lat, box.a, box.b) };
+    else return;
+    i.auto = true; k++;
+  });
+  if (k) m.needFit = true;
   return k;
+}
+function loadNaver() {
+  if (nv.status !== 'none') return;
+  if (!NAVER_KEY) { nv.status = 'nokey'; return; }
+  nv.status = 'loading';
+  // 네이버가 Client ID·서비스 URL 인증에 실패하면 호출하는 전역 콜백
+  window.navermap_authFailure = () => { nv.status = 'failed'; switchPins(); render(); };
+  const sc = document.createElement('script');
+  sc.src = 'https://oapi.map.naver.com/openapi/v3/maps.js?ncpKeyId=' + encodeURIComponent(NAVER_KEY);
+  sc.onload = () => { nv.status = window.naver?.maps ? 'ready' : 'failed'; switchPins(); render(); };
+  sc.onerror = () => { nv.status = 'failed'; switchPins(); render(); };
+  document.head.appendChild(sc);
+}
+// 지도 종류가 바뀌면(예시 ↔ 실제) 자동으로 찍힌 핀을 그 지도 좌표로 다시 찍는다
+function switchPins() {
+  state.maps.filter(m => m.source === 'naver').forEach(m => {
+    m.images.forEach(i => { if (i.auto) { i.pin = null; i.auto = false; } });
+    autoPin(m);
+  });
+}
+function mountNaver(m) {
+  const slot = $('#nmapSlot');
+  if (!slot || !isReal(m)) return;
+  if (!m.nv) {
+    const el = document.createElement('div'); el.className = 'nmap';
+    const map = new naver.maps.Map(el, { center: new naver.maps.LatLng(DEFAULT_LL.lat, DEFAULT_LL.lng), zoom: 16, mapDataControl: false, scaleControl: false });
+    naver.maps.Event.addListener(map, 'click', e => { if (cur() === m && state.sel) pinLL(e.coord.lat(), e.coord.lng()); });
+    m.nv = { el, map, markers: [] };
+  }
+  slot.appendChild(m.nv.el);
+  const { map } = m.nv;
+  map.setSize(new naver.maps.Size(slot.clientWidth, slot.clientHeight));
+  m.nv.markers.forEach(k => k.setMap(null));
+  m.nv.markers = m.images.filter(i => i.pin && i.pin.lat !== undefined).map(i => new naver.maps.Marker({
+    map, position: new naver.maps.LatLng(i.pin.lat, i.pin.lng), title: i.name,
+    icon: { content: `<div class="pin static${i.auto ? '' : ' manual'}"><b>${m.images.indexOf(i) + 1}</b><span>${esc(i.name)}</span></div>`, anchor: new naver.maps.Point(11, 11) },
+  }));
+  if (m.needFit) {
+    const pts = m.images.filter(i => i.pin && i.pin.lat !== undefined);
+    if (pts.length === 1) { map.setCenter(new naver.maps.LatLng(pts[0].pin.lat, pts[0].pin.lng)); map.setZoom(17); }
+    else if (pts.length > 1) { const b = new naver.maps.LatLngBounds(); pts.forEach(i => b.extend(new naver.maps.LatLng(i.pin.lat, i.pin.lng))); map.fitBounds(b); }
+    m.needFit = false;
+  }
 }
 const placed = m => m.images.filter(i => i.pin).length;
 const isSingle = () => state.scale === 'single';
@@ -539,7 +613,7 @@ function moreMenu(m) {
 }
 function mapBody(m) {
   if (m.map) return workspace(m);
-  if (m.source === 'upload') return `<div class="drop">${icon('map-pin', 32)}<span class="t-sm-sb">평면도나 안내도를 올려주세요</span><p class="t-xs muted">PNG·JPG, 20MB까지 · 끌어다 놓아도 돼요</p><button class="btn btn-primary" type="button" id="addMap">파일 고르기</button></div>
+  if (m.source === 'upload') return `<div class="drop" data-drop="plan">${icon('map-pin', 32)}<span class="t-sm-sb">평면도나 안내도를 올려주세요</span><p class="t-xs muted">PNG·JPG, 20MB까지 · 끌어다 놓아도 돼요</p><button class="btn btn-primary" type="button" id="addMap">파일 고르기</button><button class="btn btn-ghost" type="button" id="demoPlan" style="margin-top:4px">예시 평면도로 해보기</button></div>
     <button class="btn btn-ghost" type="button" id="backSrc" style="margin-top:8px">다른 방식 고르기</button>`;
   // 편집 모드 '지도 추가' 모달과 같은 두 가지 방식. 네이버 지도를 먼저, 권장으로
   return `<div role="group" aria-labelledby="srcH">
@@ -588,13 +662,15 @@ function workspace(m) {
   const c = state.cursor;
   return `<div class="ws">
     <div class="ws-map">
-      <div class="floorplan${s ? '' : ' idle'}" id="plan" role="application" tabindex="0" aria-describedby="wsGuide crossPos"
+      ${m.source === 'naver' && nv.status !== 'ready' ? `<p class="nv-note t-xs" role="status">${{ loading: '네이버 지도를 불러오는 중이에요…', nokey: '지금은 예시 지도예요. 네이버 지도 Client ID를 넣으면 실제 지도로 바뀌어요.', failed: '네이버 지도 인증에 실패해 예시 지도로 보여요. Client ID와 등록한 서비스 URL을 확인해 주세요.' }[nv.status] || ''}</p>` : ''}
+      <div class="floorplan${s ? '' : ' idle'}${isReal(m) ? ' real' : ''}" id="plan" role="application" tabindex="0" aria-describedby="wsGuide crossPos"
         aria-label="${esc(dn(m))} ${SRC[m.source]}${s ? `, ‘${esc(s.name)}’ 위치 고르는 중` : ''}">
-        ${m.source === 'naver' ? NAVER_SVG : PLAN_SVG}
-        ${pl.map(i => `<div class="pin${i.auto ? '' : ' manual'}" style="left:${i.pin.x}%;top:${i.pin.y}%"><b>${m.images.indexOf(i) + 1}</b><span>${esc(i.name)}</span></div>`).join('')}
-        ${s ? `<div class="cross" id="cross" style="left:${c.x}%;top:${c.y}%" aria-hidden="true"></div>` : ''}
+        ${isReal(m) ? '<div class="nmap-slot" id="nmapSlot"></div>'
+          : (m.source === 'naver' ? NAVER_SVG : m.planUrl ? `<img class="plan-img" src="${m.planUrl}" alt="">` : PLAN_SVG)
+            + pl.map(i => `<div class="pin${i.auto ? '' : ' manual'}" style="left:${i.pin.x}%;top:${i.pin.y}%"><b>${m.images.indexOf(i) + 1}</b><span>${esc(i.name)}</span></div>`).join('')}
+        ${s ? `<div class="cross" id="cross" style="left:${isReal(m) ? 50 : c.x}%;top:${isReal(m) ? 50 : c.y}%" aria-hidden="true"></div>` : ''}
       </div>
-      <p class="sr-only" id="crossPos" aria-live="polite">${s ? `가로 ${Math.round(c.x)}%, 세로 ${Math.round(c.y)}%` : ''}</p>
+      <p class="sr-only" id="crossPos" aria-live="polite">${s ? (isReal(m) ? '방향키로 지도를 옮겨 가운데 십자선에 맞추고 Enter로 찍어요.' : `가로 ${Math.round(c.x)}%, 세로 ${Math.round(c.y)}%`) : ''}</p>
       <p class="map-legend t-xs muted" style="margin:8px 0 0">${m.source === 'naver' ? '<span><i style="background:var(--accent)"></i>GPS로 찍힘</span>' : ''}<span><i style="box-shadow:inset 0 0 0 2px var(--accent)"></i>직접 찍음</span><span>· 구역 그리기는 공간을 만든 뒤 편집 모드에서 할 수 있어요.</span></p>
     </div>
     <div class="ws-list" aria-labelledby="imgH">
@@ -604,16 +680,16 @@ function workspace(m) {
       ${m.images.length ? `
         ${todo.length ? `<h4 class="group-h">위치를 찍어야 해요 · ${todo.length}</h4><ul class="rows">${todo.map(row).join('')}</ul>` : ''}
         ${ok.length ? `<h4 class="group-h">위치가 찍힌 사진 · ${ok.length}</h4><ul class="rows">${ok.map(row).join('')}</ul>` : ''}`
-      : `<div class="drop" style="padding:24px 16px">${icon('photo-circle', 32)}<span class="t-sm-sb">아직 360이미지가 없어요</span><p class="t-xs muted" style="margin:0">여러 장을 한 번에 고를 수 있어요</p></div>`}
+      : `<div class="drop" data-drop="img" style="padding:24px 16px">${icon('photo-circle', 32)}<span class="t-sm-sb">아직 360이미지가 없어요</span><p class="t-xs muted" style="margin:0 0 8px">JPG·PNG 여러 장을 한 번에 고르거나 끌어다 놓아도 돼요</p><button class="btn btn-ghost" type="button" id="demoImg">예시 사진으로 해보기</button></div>`}
     </div>
   </div>`;
 }
 // 사진 한 줄: 번호(지도 핀과 같은 번호) · 이름 · 상태 텍스트 · 찍기 · 삭제
 function row(img) {
   const m = cur(), n = m.images.indexOf(img) + 1, sel = state.sel === img.id;
-  const status = img.pin ? (img.auto ? '✓ GPS로 찍힘' : '✓ 직접 찍음') : m.source === 'naver' && !img.gps ? 'GPS 없음' : '위치 없음';
+  const status = img.pin ? (img.auto ? '✓ GPS로 찍힘' : '✓ 직접 찍음') : m.source === 'naver' && !img.gps && !img.ll ? 'GPS 없음' : '위치 없음';
   return `<li class="row"${sel ? ' aria-current="true"' : ''}>
-    <span class="row-th" style="background:linear-gradient(180deg,${img.c[0]} 0 55%,${img.c[1]} 55%)" aria-hidden="true"><b>${n}</b></span>
+    <span class="row-th" style="background:${img.url ? `url('${img.url}') center/cover` : `linear-gradient(180deg,${img.c[0]} 0 55%,${img.c[1]} 55%)`}" aria-hidden="true"><b>${n}</b></span>
     <span class="row-main"><span class="t-sm-sb row-name">${esc(img.name)}</span><span class="t-xs ${img.pin ? 'ok-text' : 'muted'}">${status}</span></span>
     <button class="btn ${sel ? 'btn-primary' : 'btn-outline'} row-btn" type="button" data-sel="${img.id}" aria-pressed="${sel}" aria-label="${esc(img.name)} 위치 ${sel ? '고르는 중, 취소' : img.pin ? '바꾸기' : '찍기'}">${sel ? '고르는 중' : img.pin ? '바꾸기' : '찍기'}</button>
     <button class="btn btn-ghost icon-btn row-del" type="button" data-del="${img.id}" aria-label="${esc(img.name)} 삭제"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6"/></svg></button>
@@ -677,6 +753,7 @@ function renderBar() {
 function render(focusTitle) {
   renderStepper(); renderTitle(); renderSidebar();
   $('#view').innerHTML = [vBasics, vMaps, vReview][state.step]();
+  if (state.step === 1) mountNaver(cur());
   renderBar();
   if (focusTitle) $('#titleBlock h1').focus();
 }
@@ -701,6 +778,8 @@ document.addEventListener('input', e => {
 document.addEventListener('change', e => {
   if (e.target.name === 'scale') { state.scale = e.target.value; if (!state.maps.length) state.maps.push(newMap()); renderBar(); }
   if (e.target.name === 'vis') { state.vis = e.target.value; renderBar(); }
+  if (e.target.id === 'imgFile') { addFiles([...e.target.files]); e.target.value = ''; }
+  if (e.target.id === 'planFile') { const f = e.target.files[0]; if (f) setPlan(f); e.target.value = ''; }
 });
 document.addEventListener('click', e => {
   const t = e.target.closest('button, #plan, a[href="#"]');
@@ -719,17 +798,19 @@ document.addEventListener('click', e => {
   if (t.dataset.act) { if (t.getAttribute('aria-disabled') !== 'true') menuAct(t.dataset.act); return; }
   const m = cur();
   if (t.dataset.src === 'naver') {
-    m.source = 'naver'; m.map = true; const k = autoPin(m); render();
+    loadNaver(); m.source = 'naver'; m.map = true; const k = autoPin(m); render();
     toast(k ? `네이버 지도를 불러왔어요. ${k}장은 GPS 위치로 찍혔어요` : '네이버 지도를 불러왔어요'); $('#addImg').focus(); return;
   }
   if (t.dataset.src === 'upload') { m.source = 'upload'; render(); $('#addMap').focus(); return; }
   if (t.id === 'backSrc') { m.source = null; render(); $('[data-src="naver"]').focus(); return; }
-  if (t.id === 'addMap') { m.map = true; render(); toast('지도 이미지를 올렸어요'); $('#addImg').focus(); return; }
+  if (t.id === 'addMap') { $('#planFile').click(); return; }
+  if (t.id === 'demoPlan') { m.map = true; m.planUrl = null; render(); toast('예시 평면도를 넣었어요'); $('#addImg').focus(); return; }
 
-  if (t.id === 'addImg') {
-    for (let k = 0; k < 3; k++) { const n = m.images.length; m.images.push({ id: uid++, name: NAMES[n % NAMES.length] + (n >= NAMES.length ? ' ' + (Math.floor(n / NAMES.length) + 1) : ''), pin: null, c: SKY[n % SKY.length], gps: n % 3 === 2 ? null : GPS[n % GPS.length] }); }
+  if (t.id === 'addImg') { $('#imgFile').click(); return; }
+  if (t.id === 'demoImg') {
+    for (let k = 0; k < 3; k++) { const n = m.images.length; m.images.push({ id: uid++, name: NAMES[n % NAMES.length] + (n >= NAMES.length ? ' ' + (Math.floor(n / NAMES.length) + 1) : ''), pin: null, c: SKY[n % SKY.length], gps: n % 3 === 2 ? null : GPS[n % GPS.length], ll: n % 3 === 2 ? null : { lat: 37.8335 - GPS[n % GPS.length][1] * 0.00004, lng: 127.5085 + GPS[n % GPS.length][0] * 0.00006 } }); }
     const k = autoPin(m); render();
-    toast(k ? `360이미지 3장을 추가했어요. ${k}장은 GPS 위치로 찍혔어요` : '360이미지 3장을 추가했어요'); $('#addImg').focus(); return;
+    toast(k ? `예시 사진 3장을 넣었어요. ${k}장은 GPS 위치로 찍혔어요` : '예시 사진 3장을 넣었어요'); $('#addImg').focus(); return;
   }
   if (t.dataset.sel) {
     const id = +t.dataset.sel;
@@ -745,10 +826,17 @@ document.addEventListener('click', e => {
     });
     return;
   }
-  if (t.id === 'plan' && state.sel) { const r = t.getBoundingClientRect(); pin((e.clientX - r.left) / r.width * 100, (e.clientY - r.top) / r.height * 100); }
+  if (t.id === 'plan' && state.sel && !isReal(m)) { const r = t.getBoundingClientRect(); pin((e.clientX - r.left) / r.width * 100, (e.clientY - r.top) / r.height * 100); }
 });
 document.addEventListener('keydown', e => {
   // 지도: 방향키로 십자선을 옮기고(Shift는 크게) Enter로 찍기, Esc로 취소
+  if (e.target.id === 'plan' && state.sel && isReal(cur())) {
+    const map = cur().nv.map, d = e.shiftKey ? 160 : 40;
+    const mv = { ArrowLeft: [-d, 0], ArrowRight: [d, 0], ArrowUp: [0, -d], ArrowDown: [0, d] }[e.key];
+    if (mv) { e.preventDefault(); map.panBy(new naver.maps.Point(mv[0], mv[1])); return; }
+    if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); const c = map.getCenter(); pinLL(c.lat(), c.lng()); return; }
+    if (e.key === 'Escape') { const id = state.sel; state.sel = null; render(); $(`[data-sel="${id}"]`)?.focus(); return; }
+  }
   if (e.target.id === 'plan' && state.sel) {
     const d = e.shiftKey ? 10 : 2, c = state.cursor;
     const mv = { ArrowLeft: [-d, 0], ArrowRight: [d, 0], ArrowUp: [0, -d], ArrowDown: [0, d] }[e.key];
@@ -793,6 +881,41 @@ function menuAct(act) {
     });
   }
 }
+function pinLL(lat, lng) {
+  const m = cur(), img = m.images.find(i => i.id === state.sel);
+  img.pin = { lat, lng }; img.auto = false;
+  const nx = m.images.find(i => !i.pin); state.sel = nx ? nx.id : null;
+  render(); toast(`‘${img.name}’ 위치를 찍었어요${nx ? ` · 다음은 ‘${nx.name}’` : ''}`); $('#plan')?.focus();
+}
+// 실제 파일: 360이미지는 EXIF GPS를 읽고, 평면도는 내 컴퓨터 이미지를 그대로 보여준다
+async function addFiles(files) {
+  const m = cur(), imgs = files.filter(f => /^image\/(jpeg|png)$/.test(f.type));
+  if (!imgs.length) { toast('JPG·PNG 이미지만 올릴 수 있어요'); return; }
+  toast('사진을 읽는 중이에요…');
+  for (const f of imgs) {
+    let ll = null;
+    try { const g = await window.exifr?.gps(f); if (g && isFinite(g.latitude) && isFinite(g.longitude)) ll = { lat: g.latitude, lng: g.longitude }; } catch (_) {}
+    m.images.push({ id: uid++, name: f.name.replace(/\.[^.]+$/, ''), url: URL.createObjectURL(f), pin: null, gps: null, ll });
+  }
+  const withGps = imgs.length && m.images.slice(-imgs.length).filter(i => i.ll).length;
+  const k = autoPin(m); render(); $('#addImg')?.focus();
+  toast(m.source === 'naver'
+    ? (k ? `${imgs.length}장을 추가했어요. ${k}장은 GPS 위치로 찍혔어요` : `${imgs.length}장을 추가했어요. 사진에 GPS 정보가 없어서 위치를 직접 찍어주세요`)
+    : `${imgs.length}장을 추가했어요${withGps ? ` · GPS가 있는 사진 ${withGps}장` : ''}`);
+}
+function setPlan(f) {
+  if (!/^image\/(jpeg|png)$/.test(f.type)) { toast('PNG·JPG 이미지만 올릴 수 있어요'); return; }
+  if (f.size > 20 * 1024 * 1024) { toast('20MB보다 작은 이미지를 올려주세요'); return; }
+  const m = cur(); m.planUrl = URL.createObjectURL(f); m.map = true; render(); toast('평면도를 올렸어요'); $('#addImg').focus();
+}
+document.addEventListener('dragover', e => { if (e.target.closest?.('[data-drop]')) { e.preventDefault(); e.target.closest('[data-drop]').classList.add('over'); } });
+document.addEventListener('dragleave', e => e.target.closest?.('[data-drop]')?.classList.remove('over'));
+document.addEventListener('drop', e => {
+  const z = e.target.closest?.('[data-drop]'); if (!z) return;
+  e.preventDefault(); z.classList.remove('over');
+  const files = [...e.dataTransfer.files];
+  if (z.dataset.drop === 'plan') files[0] && setPlan(files[0]); else addFiles(files);
+});
 function pin(x, y) {
   const m = cur(), img = m.images.find(i => i.id === state.sel);
   img.pin = { x: Math.max(6, Math.min(90, x)), y: Math.max(8, Math.min(92, y)) }; img.auto = false;

@@ -158,6 +158,13 @@ fieldset { border: 0; margin: 0; padding: 0; min-width: 0; }
 .title-edit.empty { border: 1px dashed var(--input); }
 .title-edit.invalid { border: 1px solid var(--destructive); }
 .title-hint { margin: 4px 24px 0; }
+.src-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 16px; }
+.src-card { display: flex; flex-direction: column; align-items: flex-start; gap: 8px; text-align: left; padding: 24px; border: 1px solid var(--border); border-radius: var(--radius-lg); background: var(--background); cursor: pointer; }
+.src-card:hover { border-color: var(--foreground); }
+.src-top { display: flex; width: 100%; justify-content: space-between; align-items: flex-start; margin-bottom: 8px; }
+.src-ico { width: 48px; height: 48px; border-radius: 12px; background: var(--secondary); display: grid; place-items: center; }
+.src-list { display: flex; flex-direction: column; gap: 6px; margin-top: 8px; padding-top: 14px; border-top: 1px solid var(--border); width: 100%; }
+.src-list .ck { color: var(--accent); font-style: normal; font-weight: 600; }
 .add-map { width: 100%; height: 44px; border-style: dashed; border-color: var(--semantic-border); box-shadow: none; }
 
 /* tip (Figma 460:1337) */
@@ -339,7 +346,17 @@ const $ = (s, el = document) => el.querySelector(s);
 const esc = s => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const icon = (f, s = 20) => `<img src="assets/${f}.svg" width="${s}" height="${s}" alt="">`;
 
-const newMap = () => ({ id: uid++, label: '', map: false, images: [] });
+// source: 'naver' = 360이미지 GPS로 실제 지도 불러오기(권장) / 'upload' = 평면도·안내도 직접 올리기
+const newMap = () => ({ id: uid++, label: '', source: null, map: false, images: [] });
+const SRC = { naver: '네이버 지도', upload: '직접 올린 지도' };
+// 시안용 GPS 좌표(지도 위 %). 3장 중 1장은 GPS가 없는 사진으로 가정
+const GPS = [[22, 62], [38, 40], [56, 30], [70, 58], [48, 74], [82, 34], [30, 82], [64, 18]];
+// 네이버 지도면 GPS가 있는 사진은 자동으로 위치가 찍힌다
+function autoPin(m) {
+  let k = 0;
+  if (m.source === 'naver') m.images.forEach(i => { if (i.gps && !i.pin) { i.pin = { x: i.gps[0], y: i.gps[1] }; i.auto = true; k++; } });
+  return k;
+}
 const placed = m => m.images.filter(i => i.pin).length;
 const isSingle = () => state.scale === 'single';
 const needsName = () => !isSingle() || state.maps.length > 1;
@@ -460,15 +477,15 @@ function vMaps() {
           <span class="sr-only">${i + 1}번째 지도 이름</span>
           <input id="mapName" autocomplete="off" aria-required="true" placeholder="지도 이름 (예: 1층, 캠핑 사이트)" value="${esc(m.label)}" size="${titleSize(m.label)}" aria-invalid="${nameErr}" aria-describedby="mapNameHint${nameErr ? ' mapNameErr' : ''}">
           <svg class="pencil" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21.17 6.81a2.83 2.83 0 0 0-4-4L3.84 16.17a2 2 0 0 0-.5.83l-1.32 4.35a.5.5 0 0 0 .62.62l4.35-1.32a2 2 0 0 0 .83-.5z"/></svg>
-        </label>` : '<h2 id="mapH" class="t-base-sb">지도 이미지</h2>'}
-      <span class="badge${m.map ? ' ok' : ''}">${m.map ? '✓ 지도 있음' : '지도 없음'}</span><span class="spacer"></span>
+        </label>` : '<h2 id="mapH" class="t-base-sb">지도</h2>'}
+      <span class="badge${m.map ? ' ok' : ''}">${m.map ? '✓ ' + SRC[m.source] : '지도 없음'}</span><span class="spacer"></span>
       ${needsName() ? `<span class="order-btns">
         <button class="btn btn-outline icon-btn" type="button" data-move="-1" aria-label="이 지도를 위로 옮기기"${i === 0 ? ' disabled' : ''}>↑</button>
         <button class="btn btn-outline icon-btn" type="button" data-move="1" aria-label="이 지도를 아래로 옮기기"${i === n - 1 ? ' disabled' : ''}>↓</button>
       </span>${n > 1 ? '<button class="btn btn-ghost" type="button" id="delMap">지도 삭제</button>' : ''}` : ''}
     </div>
     ${needsName() ? `<p class="title-hint t-xs ${nameErr ? 'err' : 'muted'}" id="${nameErr ? 'mapNameErr' : 'mapNameHint'}">${nameErr ? '방문자에게 보일 이름을 붙여주세요.' : '이 이름이 방문자 화면에서 미니맵 이름으로 보여요.'}</p>` : ''}
-    <div class="panel-body">${m.map ? mapView(m) + '<div style="margin-top:12px"><button class="btn btn-outline" type="button" id="rmMap">지도 이미지 바꾸기</button></div>' : `<div class="drop">${icon('map-pin', 32)}<span class="t-sm-sb">평면도나 약도를 올려주세요</span><p class="t-xs muted">PNG·JPG·PDF, 20MB까지 · 끌어다 놓아도 돼요</p><button class="btn btn-primary" type="button" id="addMap">파일 고르기</button></div>`}</div>
+    <div class="panel-body">${mapBody(m)}</div>
   </section>
   <section class="panel" aria-labelledby="imgH">
     <div class="panel-head"><h2 id="imgH" class="t-base-sb">360이미지</h2>
@@ -478,31 +495,65 @@ function vMaps() {
       : `<div class="drop">${icon('photo-circle', 32)}<span class="t-sm-sb">아직 360이미지가 없어요</span><p class="t-xs muted">여러 장을 한 번에 고를 수 있어요</p></div>`}</div>
   </section>`;
 }
+function mapBody(m) {
+  if (m.map) return mapView(m) + `<div style="margin-top:12px;display:flex;gap:8px;align-items:center;flex-wrap:wrap"><button class="btn btn-outline" type="button" id="rmMap">지도 방식 바꾸기</button><span class="t-xs muted">구역 그리기는 공간을 만든 뒤 편집 모드에서 할 수 있어요.</span></div>`;
+  if (m.source === 'upload') return `<div class="drop">${icon('map-pin', 32)}<span class="t-sm-sb">평면도나 안내도를 올려주세요</span><p class="t-xs muted">PNG·JPG, 20MB까지 · 끌어다 놓아도 돼요</p><button class="btn btn-primary" type="button" id="addMap">파일 고르기</button></div>
+    <button class="btn btn-ghost" type="button" id="backSrc" style="margin-top:8px">다른 방식 고르기</button>`;
+  // 편집 모드 '지도 추가' 모달과 같은 두 가지 방식. 네이버 지도를 먼저, 권장으로
+  return `<div role="group" aria-labelledby="srcH">
+    <p class="t-sm-m" id="srcH" style="margin:0 0 12px">지도를 어떻게 만들까요?</p>
+    <div class="src-grid">
+      <button class="src-card" type="button" data-src="naver">
+        <span class="src-top"><span class="src-ico">${icon('map-pin', 24)}</span><span class="badge ok">권장</span></span>
+        <span class="t-base-sb">네이버 지도</span>
+        <span class="t-sm muted">360이미지에 담긴 GPS 위치로 실제 지도를 불러와요.</span>
+        <span class="src-list t-sm"><span><i class="ck" aria-hidden="true">✓</i> 사진 위치가 자동으로 찍혀요</span><span><i class="ck" aria-hidden="true">✓</i> 지도 이미지를 따로 준비하지 않아도 돼요</span><span><i class="ck" aria-hidden="true">✓</i> 캠핑장처럼 야외에 넓게 퍼진 곳에 잘 맞아요</span></span>
+      </button>
+      <button class="src-card" type="button" data-src="upload">
+        <span class="src-top"><span class="src-ico"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#0a0a0a" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="m16 12-4-4-4 4M12 16V8"/></svg></span></span>
+        <span class="t-base-sb">직접 업로드</span>
+        <span class="t-sm muted">평면도나 안내도 이미지를 올리고, 사진 위치를 직접 찍어요.</span>
+        <span class="src-list t-sm"><span><i class="ck" aria-hidden="true">✓</i> 건물 안이나 층별 공간에 잘 맞아요</span><span><i class="ck" aria-hidden="true">✓</i> 원하는 자리에 사진을 놓을 수 있어요</span><span><i class="ck" aria-hidden="true">✓</i> PNG·JPG 이미지, 20MB까지</span></span>
+      </button>
+    </div></div>`;
+}
 function shot(img) {
   const m = cur(), n = m.images.indexOf(img) + 1, sel = state.sel === img.id;
   return `<li class="shot"${sel ? ' aria-current="true"' : ''}>
     <div class="ph" style="background:linear-gradient(180deg,${img.c[0]} 0 55%,${img.c[1]} 55%)" role="img" aria-label="${esc(img.name)} 미리보기"><span class="n">${n}</span><span class="cap" aria-hidden="true">${esc(img.name)}</span></div>
-    <div class="meta"><span class="badge${img.pin ? ' ok' : ''}" style="align-self:flex-start">${img.pin ? '✓ 위치 있음' : '위치 없음'}</span>
+    <div class="meta"><span class="badge${img.pin ? ' ok' : ''}" style="align-self:flex-start">${img.pin ? (img.auto ? '✓ GPS로 찍힘' : '✓ 위치 있음') : m.source === 'naver' && !img.gps ? 'GPS 없음 · 직접 찍기' : '위치 없음'}</span>
       <div class="acts">
-        <button class="btn btn-outline" type="button" data-sel="${img.id}" aria-pressed="${sel}"${m.map ? '' : ' disabled title="지도 이미지를 먼저 올려주세요"'}>${sel ? '지도에서 고르는 중' : img.pin ? '위치 바꾸기' : '위치 찍기'}</button>
+        <button class="btn btn-outline" type="button" data-sel="${img.id}" aria-pressed="${sel}"${m.map ? '' : ' disabled title="지도를 먼저 만들어 주세요"'}>${sel ? '지도에서 고르는 중' : img.pin ? '위치 바꾸기' : '위치 찍기'}</button>
         <button class="btn btn-outline icon-btn" type="button" data-del="${img.id}" aria-label="${esc(img.name)} 삭제">🗑</button>
       </div></div></li>`;
 }
+const PLAN_SVG = `<svg viewBox="0 0 400 250" aria-hidden="true" fill="none" stroke="#9AAACB" stroke-width="3">
+  <rect x="20" y="20" width="360" height="210" fill="#fff"/><path d="M160 20v120M20 140h100M260 100h120M260 100v130"/>
+  <g fill="#737373" stroke="none" font-size="13" font-family="Pretendard Variable, sans-serif" text-anchor="middle">
+    <text x="85" y="85">홀</text><text x="320" y="62">카페</text><text x="320" y="170">테라스</text><text x="200" y="195">복도</text></g></svg>`;
+// 네이버 지도 API 화면을 흉내 낸 시안용 지도(실서비스에선 Maps JavaScript API로 대체)
+const NAVER_SVG = `<svg viewBox="0 0 400 250" aria-hidden="true">
+  <rect width="400" height="250" fill="#f1efe9"/>
+  <path d="M0 175 C80 160 120 205 210 190 S340 150 400 170 V250 H0Z" fill="#cfe3f3"/>
+  <path d="M30 20 C90 10 140 40 130 90 S60 130 25 100Z" fill="#d7e8c9"/><path d="M260 30 C320 15 380 40 370 95 S300 120 270 85Z" fill="#d7e8c9"/>
+  <path d="M0 140 C100 130 160 110 230 120 S340 120 400 100" stroke="#fff" stroke-width="10" fill="none"/>
+  <path d="M0 140 C100 130 160 110 230 120 S340 120 400 100" stroke="#f3c969" stroke-width="5" fill="none"/>
+  <path d="M190 0 C185 60 205 100 200 250" stroke="#fff" stroke-width="7" fill="none"/>
+  <path d="M60 60 C120 80 150 60 200 70 M200 70 C250 80 290 60 330 65" stroke="#fff" stroke-width="4" fill="none" stroke-dasharray="1 0"/>
+  <g font-size="11" font-family="Pretendard Variable, sans-serif" fill="#5f6b7a" text-anchor="middle">
+    <text x="80" y="66">캠핑 사이트</text><text x="318" y="62">주차장</text><text x="300" y="215">북한강</text><text x="150" y="160">가평로</text></g>
+  <text x="394" y="244" font-size="9" fill="#7a7a7a" text-anchor="end" font-family="sans-serif">© NAVER Corp.</text></svg>`;
 function mapView(m) {
   const s = m.images.find(i => i.id === state.sel), pl = m.images.filter(i => i.pin);
   return `<div class="mapwrap">
     <div class="floorplan${s ? '' : ' idle'}" id="plan" role="application" tabindex="0" aria-describedby="pinlist"
-      aria-label="${esc(dn(m))} 지도. ${s ? `‘${esc(s.name)}’ 위치를 지도에서 눌러주세요. Enter를 누르면 가운데에 찍혀요.` : '사진의 위치 찍기 버튼을 먼저 눌러주세요.'}">
-      <svg viewBox="0 0 400 250" aria-hidden="true" fill="none" stroke="#9AAACB" stroke-width="3">
-        <rect x="20" y="20" width="360" height="210" fill="#fff"/><path d="M160 20v120M20 140h100M260 100h120M260 100v130"/>
-        <g fill="#737373" stroke="none" font-size="13" font-family="Pretendard Variable, sans-serif" text-anchor="middle">
-          <text x="85" y="85">홀</text><text x="320" y="62">카페</text><text x="320" y="170">테라스</text><text x="200" y="195">복도</text></g>
-      </svg>
+      aria-label="${esc(dn(m))} ${SRC[m.source]}. ${s ? `‘${esc(s.name)}’ 위치를 지도에서 눌러주세요. Enter를 누르면 가운데에 찍혀요.` : '사진의 위치 찍기 버튼을 먼저 눌러주세요.'}">
+      ${m.source === 'naver' ? NAVER_SVG : PLAN_SVG}
       ${pl.map(i => `<div class="pin" style="left:${i.pin.x}%;top:${i.pin.y}%"><b>${m.images.indexOf(i) + 1}</b><span>${esc(i.name)}</span></div>`).join('')}
     </div>
     <div class="pinlist" id="pinlist">
       <h3 class="t-sm-sb">위치 찍은 사진 ${pl.length}/${m.images.length}</h3>
-      <p class="t-xs muted">${s ? `‘${esc(s.name)}’ 위치를 지도에서 눌러주세요.` : m.images.length ? '사진에서 ‘위치 찍기’를 누르고 지도를 눌러주세요.' : '아래에서 360이미지를 먼저 추가해 주세요.'}</p>
+      <p class="t-xs muted">${s ? `‘${esc(s.name)}’ 위치를 지도에서 눌러주세요.` : m.source === 'naver' ? (m.images.length ? (pl.length < m.images.length ? 'GPS가 없는 사진은 ‘위치 찍기’로 직접 찍어주세요.' : '모든 사진이 GPS 위치로 찍혔어요. 위치가 다르면 ‘위치 바꾸기’로 옮길 수 있어요.') : '360이미지를 올리면 GPS 위치에 맞춰 자동으로 찍혀요.') : m.images.length ? '사진에서 ‘위치 찍기’를 누르고 지도를 눌러주세요.' : '아래에서 360이미지를 먼저 추가해 주세요.'}</p>
       ${pl.length ? `<ol class="t-sm">${pl.map(i => `<li value="${m.images.indexOf(i) + 1}">${esc(i.name)}</li>`).join('')}</ol>` : ''}
     </div></div>`;
 }
@@ -524,8 +575,8 @@ function vReview() {
   <section class="panel tbl-wrap">
     <table>
       <caption>지도별로 채운 내용 · 위에서부터 방문자에게 보이는 순서예요</caption>
-      <thead><tr><th scope="col">지도 이름</th><th scope="col">지도 이미지</th><th scope="col" class="num">360이미지</th><th scope="col" class="num">위치 찍은 사진</th><th scope="col">상태</th><th scope="col"><span class="sr-only">작업</span></th></tr></thead>
-      <tbody>${state.maps.map((m, i) => `<tr><th scope="row">${esc(dn(m, i))}</th><td>${m.map ? '있음' : '없음'}</td><td class="num">${m.images.length}장</td><td class="num">${placed(m)} / ${m.images.length}</td>
+      <thead><tr><th scope="col">지도 이름</th><th scope="col">지도</th><th scope="col" class="num">360이미지</th><th scope="col" class="num">위치 찍은 사진</th><th scope="col">상태</th><th scope="col"><span class="sr-only">작업</span></th></tr></thead>
+      <tbody>${state.maps.map((m, i) => `<tr><th scope="row">${esc(dn(m, i))}</th><td>${m.map ? SRC[m.source] : '없음'}</td><td class="num">${m.images.length}장</td><td class="num">${placed(m)} / ${m.images.length}</td>
         <td><span class="badge${done(m) ? ' ok' : ''}">${done(m) ? '✓ 완료' : '채우는 중'}</span></td>
         <td class="num"><button class="btn btn-ghost" type="button" data-goto="${i}">${esc(dn(m, i))} 수정</button></td></tr>`).join('')}</tbody>
     </table>
@@ -546,7 +597,7 @@ function blocker() {
   if (state.step === 1) {
     const m = cur();
     if (needsName() && !named(m)) return '방문자에게 보일 지도 이름을 붙여주세요.';
-    if (!m.map) return '지도 이미지를 올려주세요.';
+    if (!m.map) return m.source === 'upload' ? '평면도나 안내도를 올려주세요.' : '지도를 어떻게 만들지 골라주세요.';
     if (!m.images.length) return '360이미지를 추가해 주세요.';
     const u = m.images.length - placed(m);
     if (u) return `위치를 안 찍은 사진이 ${u}장 있어요. 나중에 찍어도 돼요.`;
@@ -615,11 +666,18 @@ document.addEventListener('click', e => {
     return;
   }
   const m = cur();
+  if (t.dataset.src === 'naver') {
+    m.source = 'naver'; m.map = true; const k = autoPin(m); render();
+    toast(k ? `네이버 지도를 불러왔어요. ${k}장은 GPS 위치로 찍혔어요` : '네이버 지도를 불러왔어요'); $('#addImg').focus(); return;
+  }
+  if (t.dataset.src === 'upload') { m.source = 'upload'; render(); $('#addMap').focus(); return; }
+  if (t.id === 'backSrc') { m.source = null; render(); $('[data-src="naver"]').focus(); return; }
   if (t.id === 'addMap') { m.map = true; render(); toast('지도 이미지를 올렸어요'); $('#addImg').focus(); return; }
-  if (t.id === 'rmMap') { m.map = false; m.images.forEach(i => i.pin = null); state.sel = null; render(); $('#addMap').focus(); return; }
+  if (t.id === 'rmMap') { m.map = false; m.source = null; m.images.forEach(i => { i.pin = null; i.auto = false; }); state.sel = null; render(); $('[data-src="naver"]').focus(); return; }
   if (t.id === 'addImg') {
-    for (let k = 0; k < 3; k++) { const n = m.images.length; m.images.push({ id: uid++, name: NAMES[n % NAMES.length] + (n >= NAMES.length ? ' ' + (Math.floor(n / NAMES.length) + 1) : ''), pin: null, c: SKY[n % SKY.length] }); }
-    render(); toast('360이미지 3장을 추가했어요'); $('#addImg').focus(); return;
+    for (let k = 0; k < 3; k++) { const n = m.images.length; m.images.push({ id: uid++, name: NAMES[n % NAMES.length] + (n >= NAMES.length ? ' ' + (Math.floor(n / NAMES.length) + 1) : ''), pin: null, c: SKY[n % SKY.length], gps: n % 3 === 2 ? null : GPS[n % GPS.length] }); }
+    const k = autoPin(m); render();
+    toast(k ? `360이미지 3장을 추가했어요. ${k}장은 GPS 위치로 찍혔어요` : '360이미지 3장을 추가했어요'); $('#addImg').focus(); return;
   }
   if (t.dataset.sel) { const id = +t.dataset.sel; state.sel = state.sel === id ? null : id; render(); $('#plan')?.focus(); return; }
   if (t.dataset.del) {
@@ -637,7 +695,7 @@ document.addEventListener('keydown', e => {
 });
 function pin(x, y) {
   const m = cur(), img = m.images.find(i => i.id === state.sel);
-  img.pin = { x: Math.max(6, Math.min(90, x)), y: Math.max(8, Math.min(92, y)) };
+  img.pin = { x: Math.max(6, Math.min(90, x)), y: Math.max(8, Math.min(92, y)) }; img.auto = false;
   const nx = m.images.find(i => !i.pin); state.sel = nx ? nx.id : null;
   render(); toast(`‘${img.name}’ 위치를 찍었어요${nx ? ` · 다음은 ‘${nx.name}’` : ''}`); $('#plan')?.focus();
 }

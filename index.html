@@ -81,14 +81,18 @@ img { display: block; }
 
 /* 스테퍼 (Figma: Frame 1739333684) */
 .stepper { list-style: none; margin: 0; padding: 0; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
-.stepper li { display: flex; align-items: center; gap: 6px; padding: 6px 0; font-size: 14px; line-height: 20px; color: var(--muted-foreground); }
+.stepper li { display: flex; align-items: center; gap: 6px; padding: 6px 0; font-size: 14px; line-height: 20px; color: var(--muted-foreground); white-space: nowrap; overflow: hidden; max-width: 200px; transition: max-width .3s ease, opacity .2s ease, margin .3s ease; }
+/* 단일 공간: 층 구성 단계를 접어서 제거 (줄 긋기 대신) */
+.stepper li.gone { max-width: 0; opacity: 0; margin-left: -8px; }
 .stepper li + li::before { content: ""; width: 17px; height: 1px; background: var(--border); margin-right: 2px; }
 .stepper .num { width: 24px; height: 24px; border-radius: 8px; background: var(--secondary); color: var(--muted-foreground); font-size: 12px; line-height: 16px; font-weight: 700; display: grid; place-items: center; }
 .stepper li[aria-current="step"] { color: var(--foreground); font-weight: 600; }
 .stepper li[aria-current="step"] .num { background: var(--accent); color: #fff; }
 .stepper li.done { color: var(--foreground); }
 .stepper li.done .num { background: var(--foreground); color: var(--primary-foreground); }
-.stepper li.skipped { text-decoration: line-through; }
+.flow li { transition: max-height .3s ease, opacity .2s ease, padding .3s ease, margin .3s ease, border-width .3s ease; max-height: 80px; overflow: hidden; }
+.flow li.gone { max-height: 0; opacity: 0; padding-block: 0; margin-top: -8px; border-width: 0; }
+@media (prefers-reduced-motion: reduce) { .stepper li, .flow li { transition: none; } }
 
 .title-block { display: flex; flex-direction: column; gap: 6px; }
 .title-block h1 { margin: 0; }
@@ -342,13 +346,31 @@ const done = f => f.map && f.images.length > 0 && placed(f) === f.images.length;
 const isSingle = () => state.scale === 'single';
 
 /* ── 상단 ── */
+// 단계 요소를 매번 새로 그리지 않고 상태만 바꿔야 접히는 전환이 보인다
 function renderStepper() {
-  $('#stepper').innerHTML = STEPS.map((s, i) => {
-    const skip = i === 1 && isSingle();
-    const cls = [i < state.step && !skip ? 'done' : '', skip ? 'skipped' : ''].join(' ');
-    const sr = skip ? ' (단일 공간은 건너뜀)' : i < state.step ? ' (완료)' : '';
-    return `<li class="${cls}"${i === state.step ? ' aria-current="step"' : ''}><span class="num" aria-hidden="true">${i < state.step && !skip ? '✓' : i + 1}</span>${s.name}<span class="sr-only">${sr}</span></li>`;
-  }).join('');
+  const ol = $('#stepper');
+  if (!ol.children.length) ol.innerHTML = STEPS.map(s => `<li><span class="num" aria-hidden="true"></span>${s.name}<span class="sr-only"></span></li>`).join('');
+  let shown = 0;
+  [...ol.children].forEach((li, i) => {
+    const gone = i === 1 && isSingle();
+    if (!gone) shown++;
+    li.classList.toggle('gone', gone);
+    li.classList.toggle('done', i < state.step);
+    gone ? li.setAttribute('aria-hidden', 'true') : li.removeAttribute('aria-hidden');
+    i === state.step ? li.setAttribute('aria-current', 'step') : li.removeAttribute('aria-current');
+    li.querySelector('.num').textContent = i < state.step ? '✓' : shown;
+    li.querySelector('.sr-only').textContent = i < state.step ? ' (완료)' : '';
+  });
+}
+function syncFlow() {
+  let shown = 0;
+  document.querySelectorAll('.flow li').forEach((li, i) => {
+    const gone = i === 1 && isSingle();
+    if (!gone) shown++;
+    li.classList.toggle('gone', gone);
+    gone ? li.setAttribute('aria-hidden', 'true') : li.removeAttribute('aria-hidden');
+    li.querySelector('.no').textContent = shown;
+  });
 }
 function renderTitle() {
   const f = state.floors[state.active];
@@ -371,6 +393,7 @@ function renderSidebar() {
         <ol class="flow">${STEPS.map((s, i) => `<li${i === 0 ? ' aria-current="step"' : ''}><span class="no" aria-hidden="true">${i + 1}</span><span><span class="t-sm-sb">${s.name}</span><br><span class="t-xs muted">${s.hint}</span></span></li>`).join('')}</ol>
       </section>
       <div class="tip">${icon('lightbulb-ai', 32)}<p class="t-sm">한 번에 다 못 해도 괜찮아요.<br>임시 저장 후 이어서 등록할 수 있어요.</p></div>`;
+    syncFlow();
     return;
   }
   const n = state.floors.length, ok = state.floors.filter(done).length;
@@ -597,7 +620,7 @@ document.addEventListener('change', e => {
     state.scale = e.target.value;
     if (isSingle()) { state.basement = false; makeFloors(1, false); state.floors[0].label = '1층'; }
     else if (state.floors.length < 2) makeFloors(3, state.basement);
-    renderStepper(); renderBar();
+    renderStepper(); syncFlow(); renderBar();
   }
   if (e.target.id === 'basement') { state.basement = e.target.checked; state.floors.forEach(f => f.custom = false); makeFloors(state.floors.length, state.basement); render(); $('#basement').focus(); }
   if (e.target.name === 'vis') { state.vis = e.target.value; renderBar(); }

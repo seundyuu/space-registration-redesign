@@ -223,6 +223,9 @@ fieldset { border: 0; margin: 0; padding: 0; min-width: 0; }
 .flow .no { width: 24px; height: 24px; border-radius: 8px; flex: none; background: var(--secondary); display: grid; place-items: center; font-size: 12px; font-weight: 700; color: var(--muted-foreground); }
 .flow li[aria-current="step"] .no { background: var(--accent); color: #fff; }
 .flow li[aria-current="step"] { border-color: var(--foreground); }
+/* 아직 오지 않은 단계는 상단 스테퍼처럼 회색으로 — 선택된 것처럼 보이지 않게 */
+.flow li:not([aria-current="step"]) { background: transparent; }
+.flow li:not([aria-current="step"]) .t-sm-sb { color: var(--muted-foreground); font-weight: 500; }
 .progress { font-size: 12px; line-height: 16px; color: var(--muted-foreground); }
 
 /* ── 아래부터 Figma에 없는 컴포넌트 = shadcn/ui 스펙 (Tabs, Card, Badge, Table, AlertDialog, Checkbox, RadioGroup, Sonner, Progress) ── */

@@ -225,7 +225,10 @@ fieldset { border: 0; margin: 0; padding: 0; min-width: 0; }
 .flow li { display: flex; gap: 12px; align-items: flex-start; padding: 12px 16px; border: 1px solid var(--border); border-radius: var(--radius-lg); background: var(--background); }
 .flow .no { width: 24px; height: 24px; border-radius: 8px; flex: none; background: var(--secondary); display: grid; place-items: center; font-size: 12px; font-weight: 700; color: var(--muted-foreground); }
 .flow li[aria-current="step"] .no { background: var(--accent); color: #fff; }
-.flow li[aria-current="step"] { border-color: var(--foreground); }
+/* 현재 단계 = 공간 유형 카드·지도 행의 선택 표현과 같은 파랑 (accent 테두리 + accent-bg) */
+.flow li[aria-current="step"] { border-color: var(--accent); background: var(--accent-bg); }
+/* #737373은 accent-bg 위 4.37:1로 AA 미달 → #525252 (7.2:1) */
+.flow li[aria-current="step"] .muted { color: #525252; }
 /* 아직 오지 않은 단계는 상단 스테퍼처럼 회색으로 — 선택된 것처럼 보이지 않게 */
 .flow li:not([aria-current="step"]) { background: #FDFDFD; }
 .flow li:not([aria-current="step"]) .t-sm-sb { color: var(--muted-foreground); font-weight: 500; }

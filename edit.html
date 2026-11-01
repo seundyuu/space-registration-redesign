@@ -90,6 +90,11 @@ svg.i { width: 16px; height: 16px; flex: none; fill: none; stroke: currentColor;
 /* 미니맵 미리보기 */
 .mini { position: relative; aspect-ratio: 16 / 10; border: 1px solid var(--border); border-radius: var(--radius-md); background: #f7f8fa; overflow: hidden; }
 .mini svg.plan, .plan-lg svg.plan { width: 100%; height: 100%; display: block; }
+.nmap-slot { position: absolute; inset: 0; overflow: hidden; }
+.nmap { position: absolute; left: 0; top: 0; transform-origin: 0 0; pointer-events: none; }
+svg.zones { z-index: 1; }
+.zlabel, .pin, .dot, .cross { z-index: 2; }
+.map-src { position: absolute; right: 6px; top: 6px; z-index: 3; font-size: 11px; line-height: 16px; font-weight: 600; padding: 1px 6px; border-radius: 4px; background: rgba(255,255,255,.92); color: #525252; pointer-events: none; }
 .dot { position: absolute; transform: translate(-50%, -50%); width: 18px; height: 18px; border-radius: 99px; background: var(--accent); color: #fff; font-size: 11px; font-weight: 700; display: grid; place-items: center; box-shadow: 0 0 0 2px #fff; pointer-events: none; }
 .dot.cur { width: 24px; height: 24px; font-size: 12px; background: var(--foreground); box-shadow: 0 0 0 3px #fff, 0 0 0 5px var(--foreground); z-index: 2; }
 
@@ -131,7 +136,11 @@ select.input { padding-right: 8px; }
 .ov-layer > .cross { pointer-events: none; }
 .hs-wrap, .start-hs { width: auto; height: auto; }
 .hs-wrap { z-index: 2; }
-.start-hs span { display: inline-block; transform: translate(-50%, -50%); background: rgba(255,255,255,.92); color: var(--foreground); font-size: 12px; font-weight: 600; padding: 2px 8px; border-radius: 6px; white-space: nowrap; pointer-events: none; border: 1px dashed var(--semantic-border); }
+.start-hs { width: 0 !important; height: 0 !important; pointer-events: none; z-index: 1; }
+.start-hs .sl-v, .start-hs .sl-h { position: absolute; display: block; pointer-events: none; opacity: .85; }
+.start-hs .sl-v { left: -1px; top: -3000px; width: 2px; height: 6000px; background: repeating-linear-gradient(#fff 0 6px, transparent 6px 12px); }
+.start-hs .sl-h { top: -1px; left: -3000px; height: 2px; width: 6000px; background: repeating-linear-gradient(90deg, #fff 0 6px, transparent 6px 12px); }
+.start-hs span { position: absolute; left: 8px; top: -30px; background: #fff; color: var(--foreground); font-size: 12px; font-weight: 600; padding: 2px 8px; border-radius: 6px; white-space: nowrap; pointer-events: none; box-shadow: 0 1px 3px rgba(0,0,0,.25); }
 .placing .pano, .placing .pnlm-dragfix, .placing .pnlm-ui { cursor: crosshair !important; }
 .pano:active { cursor: grabbing; }
 .pano:focus-visible { outline: 3px solid var(--focus); outline-offset: -3px; }
@@ -360,8 +369,8 @@ const S = {
   vis: 'private',
   // 예시: 가평 휴밸리(숙박) 102호 객실 + 실내 수영장. img = assets/pano/{img}.jpg (360 equirectangular)
   maps: [
-    { id: 1, label: '102호 객실', route: { from: 1, to: 3 }, zones: [{ id: 90, name: '현관', pts: [{ x: 6, y: 50 }, { x: 28, y: 50 }, { x: 28, y: 86 }, { x: 6, y: 86 }] }] },
-    { id: 2, label: '실내 수영장', route: { from: null, to: null } },
+    { id: 1, label: '102호 객실', center: { lat: 37.8335, lng: 127.5085 }, route: { from: 1, to: 3 }, zones: [{ id: 90, name: '현관', pts: [{ x: 6, y: 50 }, { x: 28, y: 50 }, { x: 28, y: 86 }, { x: 6, y: 86 }] }] },
+    { id: 2, label: '실내 수영장', center: { lat: 37.8337, lng: 127.5089 }, route: { from: null, to: null } },
   ],
   photos: [
     { id: 1, map: 1, name: '객실 입구', img: 'entrance', file: 'IMG_20260722_113628_00_137.jpg', pin: { x: 16, y: 68 }, start: 0, c: [{ id: 1, type: 'move', target: 2, yaw: 0, pitch: -8 }, { id: 2, type: 'text', title: '체크인 안내', body: '도어락 비밀번호는 예약 문자로 보내드려요.', yaw: -70, pitch: 4 }] },
@@ -386,6 +395,40 @@ const todoOf = p => [needPin(p) && '위치 없음', needMove(p) && '이동 버�
 // 받침에 맞춰 조사 고르기: j('입구','으로','로') → '입구로'
 const j = (w, a, b) => { const k = w.replace(/[’'"\s)]+$/, ''); const c = k.charCodeAt(k.length - 1) - 0xac00; if (c < 0 || c > 11171) return w + a; const t = c % 28; return w + (t && !(a === '으로' && t === 8) ? a : b); };
 const label = c => c.type === 'move' ? (P(c.target) ? `${j(P(c.target).name, '으로', '로')} 이동` : '이동할 사진 고르기') : (c.title || TYPES[c.type].name);
+
+/* ── 네이버 지도: 등록 화면과 같은 Client ID(서비스 URL: seundyuu.github.io, localhost:5173) ──
+   편집용 지도는 끌거나 확대하지 않는 고정 프레임(640×400, 줌 18)으로 띄우고, 칸 크기에 맞춰 축소한다.
+   그래서 핀·구역의 %좌표가 미니맵과 지도 편집 창에서 같은 자리를 가리킨다. 실패하면 예시 평면도로 대신 보여준다 */
+const NAVER_KEY = '1xdhtvv4d4';
+const nv = { status: 'none' };
+const NW = 640, NH = 400;
+function loadNaver() {
+  if (nv.status !== 'none') return;
+  nv.status = 'loading';
+  window.navermap_authFailure = () => { nv.status = 'failed'; renderSide(); if ($('#mapDlg').open) renderMapEditor(); };
+  const sc = document.createElement('script');
+  sc.src = 'https://oapi.map.naver.com/openapi/v3/maps.js?ncpKeyId=' + NAVER_KEY;
+  sc.onload = () => { nv.status = window.naver?.maps ? 'ready' : 'failed'; renderSide(); if ($('#mapDlg').open) renderMapEditor(); };
+  sc.onerror = () => { nv.status = 'failed'; renderSide(); };
+  document.head.appendChild(sc);
+}
+const nmaps = {};
+const mapSlot = id => nv.status === 'ready' ? `<div class="nmap-slot" id="${id}"></div>` : planSvg();
+const mapBadge = () => `<span class="map-src">${nv.status === 'ready' ? '네이버 지도' : nv.status === 'failed' ? '예시 지도 · 네이버 지도를 불러오지 못했어요' : '지도 불러오는 중'}</span>`;
+function mountNmap(slotId, key, map) {
+  const slot = $('#' + slotId);
+  if (!slot || nv.status !== 'ready') return;
+  let m = nmaps[key];
+  if (!m) {
+    const el = document.createElement('div'); el.className = 'nmap'; el.style.width = NW + 'px'; el.style.height = NH + 'px';
+    m = nmaps[key] = { el, map: new naver.maps.Map(el, { center: new naver.maps.LatLng(map.center.lat, map.center.lng), zoom: 18,
+      draggable: false, pinchZoom: false, scrollWheel: false, keyboardShortcuts: false, disableDoubleClickZoom: true, disableKineticPan: true,
+      mapDataControl: false, scaleControl: false, zoomControl: false }) };
+  }
+  m.map.setCenter(new naver.maps.LatLng(map.center.lat, map.center.lng));
+  slot.appendChild(m.el);
+  m.el.style.transform = `scale(${slot.clientWidth / NW})`;
+}
 
 /* ── 자동 저장: '저장' 버튼을 찾아 헤매지 않게, 바뀔 때마다 저장하고 상태만 알려준다 ── */
 let saveT;
@@ -432,7 +475,8 @@ function planSvg() {
     <rect x="86" y="14" width="40" height="22" rx="2" fill="#dde2ea" stroke="#c7ced8"/><rect x="18" y="20" width="26" height="18" rx="2" fill="#dde2ea" stroke="#c7ced8"/></svg>`;
 }
 
-function renderSide() {
+function renderSide() { renderSideInner(); mountNmap('miniSlot', 'mini', curMap()); }
+function renderSideInner() {
   const map = curMap(), list = photosOf(map.id);
   const todoP = list.filter(p => todoOf(p).length);
   const noPin = todoP.filter(needPin).length, noMove = todoP.filter(needMove).length;
@@ -456,7 +500,7 @@ function renderSide() {
           </div>
         </div>
       </div>
-      <div class="mini">${planSvg()}${zonesSvg(map.zones || [])}${list.filter(p => p.pin).map(p => `<span class="dot${p.id === S.cur ? ' cur' : ''}" style="left:${p.pin.x}%;top:${p.pin.y}%">${idx(p)}</span>`).join('')}</div>
+      <div class="mini">${mapSlot('miniSlot')}${zonesSvg(map.zones || [])}${mapBadge()}${list.filter(p => p.pin).map(p => `<span class="dot${p.id === S.cur ? ' cur' : ''}" style="left:${p.pin.x}%;top:${p.pin.y}%">${idx(p)}</span>`).join('')}</div>
       <button class="btn btn-outline" type="button" data-act="editMap" data-k="editMap">${ic('map')}지도 편집 · 위치 찍기</button>
     </section>
     <section class="side-sec" aria-labelledby="photosH">
@@ -505,7 +549,8 @@ function syncHotspots() {
   hsIds.forEach(id => { try { V.removeHotSpot(id); } catch (e) {} });
   hsIds = [];
   const add = (id, o) => { V.addHotSpot({ id, ...o }); hsIds.push(id); };
-  add('start', { pitch: 28, yaw: p.start, cssClass: 'start-hs', createTooltipFunc: d => { d.innerHTML = '<span>처음 보이는 방향</span>'; } });
+  // 처음 보이는 방향: 그 방향(yaw)과 수평선(pitch 0)이 만나는 점에 십자 기준선을 그린다 — 화면을 돌려도 같이 움직인다
+  add('start', { pitch: 0, yaw: p.start, cssClass: 'start-hs', createTooltipFunc: d => { d.innerHTML = '<i class="sl-v"></i><i class="sl-h"></i><span>처음 보이는 방향</span>'; } });
   p.c.forEach(c => add('c' + c.id, { pitch: c.pitch, yaw: c.yaw, cssClass: 'hs-wrap', createTooltipFunc: d => {
     d.innerHTML = hsHtml(c);
     const b = d.querySelector('button');
@@ -722,7 +767,7 @@ function openMapEditor(pickId, mode = 'pin') {
   const map = curMap();
   M = { pins: Object.fromEntries(photosOf(map.id).map(p => [p.id, p.pin && { ...p.pin }])), zones: JSON.parse(JSON.stringify(map.zones || [])),
     route: { ...map.route }, sel: pickId ?? null, mode, draft: [], zsel: null, hist: [], fut: [], cursor: { x: 50, y: 50 } };
-  renderMapEditor(); $('#mapDlg').showModal();
+  renderMapEditor(); $('#mapDlg').showModal(); mountNmap('mSlot', 'editor', map);
   (pickId || mode === 'zone' ? $('#mPlan') : $('#mapDlg [data-close]'))?.focus();
 }
 const snapState = () => JSON.stringify({ pins: M.pins, zones: M.zones });
@@ -771,7 +816,7 @@ function renderMapEditor() {
         </div>
         <p class="t-sm" style="margin:0;min-height:20px" aria-live="polite">${guide}</p>
         <div class="plan-lg${selP || zone ? ' picking' : ''}" id="mPlan" data-k="mPlan" tabindex="0" role="application" aria-label="${esc(map.label)} 지도${zone ? ', 구역 그리기' : ''}">
-          ${planSvg()}${zonesSvg(M.zones, zone ? M.draft : [], M.zsel)}
+          ${mapSlot('mSlot')}${zonesSvg(M.zones, zone ? M.draft : [], M.zsel)}${mapBadge()}
           ${list.filter(p => M.pins[p.id]).map(p => `<span class="pin${p.id === M.sel ? ' sel' : ''}" style="left:${M.pins[p.id].x}%;top:${M.pins[p.id].y}%"><b>${idx(p)}</b><span>${esc(p.name)}</span></span>`).join('')}
           ${selP || zone ? `<span class="cross" style="left:${M.cursor.x}%;top:${M.cursor.y}%"></span>` : ''}
         </div>
@@ -794,6 +839,7 @@ function renderMapEditor() {
     <div class="big-foot"><span class="t-xs muted">${list.filter(p => M.pins[p.id]).length} / ${list.length}장 위치 찍힘${M.zones.length ? ` · 구역 ${M.zones.length}개` : ''}</span><span class="spacer"></span>
       <button class="btn btn-outline" type="button" data-close>취소</button><button class="btn btn-primary" type="button" id="mSave">저장</button></div>`; });
   const d = $('#mapDlg');
+  mountNmap('mSlot', 'editor', map);
   d.querySelectorAll('[data-close]').forEach(b => b.onclick = () => d.close());
   d.querySelectorAll('[data-mode]').forEach(b => b.onclick = () => { M.mode = b.dataset.mode; M.draft = []; M.sel = null; renderMapEditor(); $('#mPlan').focus(); });
   d.querySelectorAll('[data-pick]').forEach(b => b.onclick = () => { M.mode = 'pin'; M.draft = []; M.sel = M.sel === +b.dataset.pick ? null : +b.dataset.pick; const pp = M.pins[M.sel]; if (pp) M.cursor = { ...pp }; renderMapEditor(); M.sel && $('#mPlan').focus(); });
@@ -849,7 +895,7 @@ document.addEventListener('click', e => {
   const tb = e.target.closest('[data-map]');
   if (tb) { S.mapId = +tb.dataset.map; const f = photosOf(S.mapId)[0]; if (f) goPhoto(f.id); else render(); return; }
   if (e.target.closest('#todoBtn')) { S.filter = S.filter === 'todo' ? 'all' : 'todo'; renderSide(); }
-  if (e.target.closest('#addMap')) { const m = { id: uid++, label: `지도 ${S.maps.length + 1}`, route: { from: null, to: null } }; S.maps.push(m); S.mapId = m.id; changed(); render(); renameMap(); }
+  if (e.target.closest('#addMap')) { const m = { id: uid++, label: `지도 ${S.maps.length + 1}`, center: { ...S.maps[0].center }, route: { from: null, to: null } }; S.maps.push(m); S.mapId = m.id; changed(); render(); renameMap(); }
   if (e.target.closest('#upload')) toast('360 사진 고르기 (시안)');
 });
 document.addEventListener('keydown', e => {
@@ -919,6 +965,7 @@ function toast(m, undo) {
 $('#toastAct').onclick = () => { $('#toast').classList.remove('show'); undoFn?.(); };
 
 if (qs.get('new')) setTimeout(() => toast('공간을 만들었어요. 여기서 콘텐츠를 채워주세요'), 300);
+loadNaver();
 goPhoto(1);
 </script>
 </body>

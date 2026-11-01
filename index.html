@@ -525,7 +525,7 @@ function renderTitle() {
     needsName()
       ? ['지도를 추가해주세요', '층이나 구역마다 지도를 한 장씩 만들어요. 붙인 이름은 방문자에게 그대로 보여요.']
       : ['지도와 360이미지를 올려주세요', '지도를 올리고 사진마다 위치를 찍으면 미니맵이 만들어져요.'],
-    ['이대로 만들까요?', '만든 뒤에도 언제든 고칠 수 있어요.'],
+    ['이대로 만들까요?', '만든 뒤에도 내 공간의 ‘편집’에서 고칠 수 있어요.'],
   ][state.step];
   $('#titleBlock').innerHTML = `<h1 class="t-3xl" tabindex="-1">${esc(t[0])}</h1><p class="t-sm muted">${t[1]}</p>`;
 }
@@ -564,7 +564,7 @@ function renderSidebar() {
     ${state.step === 1
       ? (needsName() ? tip('arrowUpDown', '보이는 순서예요', '위에서부터 방문자에게 보이는 순서예요. 지도의 ⋯ 메뉴에서 바꿀 수 있어요.')
                      : tip('layers', '구역이 더 있나요?', '층이나 구역이 더 있으면 복합 공간으로 바꿔주세요.'))
-      : tip('history', '나중에 이어서 채우기', '다 못 채운 지도는 나중에 이어서 채울 수 있어요.')}`;
+      : tip('history', '나중에 이어서 채우기', '다 못 채운 지도는 공간을 만든 뒤 내 공간의 ‘편집’에서 이어서 채울 수 있어요.')}`;
 }
 
 /* ── 단계별 본문 ── */
@@ -713,7 +713,7 @@ function workspace(m) {
         ${s ? `<div class="cross" id="cross" style="left:${isReal(m) ? 50 : c.x}%;top:${isReal(m) ? 50 : c.y}%" aria-hidden="true"></div>` : ''}
       </div>
       <p class="sr-only" id="crossPos" aria-live="polite">${s ? (isReal(m) ? '방향키로 지도를 옮겨 가운데 십자선에 맞추고 Enter로 찍어요.' : `가로 ${Math.round(c.x)}%, 세로 ${Math.round(c.y)}%`) : ''}</p>
-      <p class="map-legend t-xs muted" style="margin:8px 0 0">${m.source === 'naver' ? '<span><i style="background:var(--accent)"></i>자동으로 찍힘</span>' : ''}<span><i style="box-shadow:inset 0 0 0 2px var(--accent)"></i>직접 찍음</span><span>· 구역 그리기는 공간을 만든 뒤 편집 모드에서 할 수 있어요.</span></p>
+      <p class="map-legend t-xs muted" style="margin:8px 0 0">${m.source === 'naver' ? '<span><i style="background:var(--accent)"></i>자동으로 찍힘</span>' : ''}<span><i style="box-shadow:inset 0 0 0 2px var(--accent)"></i>직접 찍음</span><span>· 구역 그리기는 공간을 만든 뒤 내 공간의 ‘편집’에서 할 수 있어요.</span></p>
     </div>
     <div class="ws-list" aria-labelledby="imgH">
       <div class="ws-list-head"><h3 id="imgH" class="t-base-sb">360이미지 <span class="t-sm muted" style="font-weight:400">${m.images.length}장</span></h3>
@@ -780,9 +780,9 @@ function blocker() {
     if (!m.map) return m.source === 'upload' ? '평면도나 안내도를 올려주세요.' : '지도를 어떻게 만들지 골라주세요.';
     if (!m.images.length) return '360이미지를 추가해주세요.';
     const u = m.images.length - placed(m);
-    if (u) return `위치를 안 찍은 사진이 ${u}장 있어요. 공간을 만든 뒤에도 찍을 수 있어요.`;
+    if (u) return `위치를 안 찍은 사진이 ${u}장 있어요. 공간을 만든 뒤 내 공간의 ‘편집’에서 찍을 수 있어요.`;
   }
-  if (state.step === 2) { const l = state.maps.filter(m => !done(m)).length; if (l) return `아직 다 못 채운 지도가 ${l}장 있어요. 나만 보기로 만든 뒤 이어서 채울 수 있어요.`; }
+  if (state.step === 2) { const l = state.maps.filter(m => !done(m)).length; if (l) return `아직 다 못 채운 지도가 ${l}장 있어요. 나만 보기로 만든 뒤 내 공간의 ‘편집’에서 이어서 채울 수 있어요.`; }
   return '';
 }
 function renderBar() {

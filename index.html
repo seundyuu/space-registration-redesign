@@ -211,6 +211,9 @@ fieldset { border: 0; margin: 0; padding: 0; min-width: 0; }
 .src-ico { width: 48px; height: 48px; border-radius: 12px; background: var(--secondary); display: grid; place-items: center; }
 .src-list { display: flex; flex-direction: column; gap: 6px; margin-top: 8px; padding-top: 14px; border-top: 1px solid var(--border); width: 100%; }
 .src-list .ck { color: var(--accent); font-style: normal; font-weight: 600; }
+.name-chips { display: flex; gap: 6px; flex-wrap: wrap; margin: 8px 24px 0; }
+.chip { height: 32px; padding: 0 12px; border: 1px solid var(--border); border-radius: 999px; background: var(--background); font-size: 13px; cursor: pointer; }
+.chip:hover { border-color: var(--foreground); }
 .add-map { width: 100%; height: 44px; border-style: dashed; border-color: var(--semantic-border); box-shadow: none; }
 
 /* tip (Figma 460:1337) */
@@ -352,6 +355,7 @@ dialog p { margin: 0 0 16px; color: var(--muted-foreground); }
   .panel-head { padding: 16px 16px 0; }
   .panel-body { padding: 12px 16px 16px; }
   .title-hint { margin: 4px 16px 0; }
+  .name-chips { margin: 8px 16px 0; }
   .src-card { padding: 18px; }
   .ws { grid-template-columns: 1fr; }
   .ws-map { position: static; }
@@ -377,7 +381,7 @@ dialog p { margin: 0 0 16px; color: var(--muted-foreground); }
 
   <main class="main">
     <div class="gnb">
-      <a class="btn btn-outline icon-btn" href="#" aria-label="내 공간으로 돌아가기"><img src="assets/arrow-left.svg" width="16" height="16" alt=""></a>
+      <a class="btn btn-outline icon-btn" href="spaces.html" id="backBtn" aria-label="내 공간으로 돌아가기"><img src="assets/arrow-left.svg" width="16" height="16" alt=""></a>
       <span class="t-sm-sb">새 공간 만들기</span>
       <span class="spacer"></span>
       <button class="btn btn-ghost" type="button" id="saveDraft">임시 저장</button>
@@ -633,7 +637,8 @@ function vMaps() {
       ${m.map ? `<span class="badge ok">✓ ${SRC[m.source]}</span>` : ''}<span class="spacer"></span>
       ${moreMenu(m)}
     </div>
-    ${needsName() ? `<p class="title-hint t-xs ${nameErr ? 'err' : 'muted'}" id="${nameErr ? 'mapNameErr' : 'mapNameHint'}">${nameErr ? '방문자에게 보일 이름을 붙여주세요.' : '이 이름이 방문자 화면에서 미니맵 이름으로 보여요.'}</p>` : ''}
+    ${needsName() ? `<p class="title-hint t-xs ${nameErr ? 'err' : 'muted'}" id="${nameErr ? 'mapNameErr' : 'mapNameHint'}">${nameErr ? '방문자에게 보일 이름을 붙여주세요.' : '이 이름이 방문자 화면에서 미니맵 이름으로 보여요.'}</p>
+      ${named(m) ? '' : `<div class="name-chips" role="group" aria-label="자주 쓰는 이름">${NAME_HINTS.filter(h => !state.maps.some(x => x.label.trim() === h)).map(h => `<button class="chip" type="button" data-name-hint="${h}">${h}</button>`).join('')}</div>`}` : ''}
     <div class="panel-body">${mapBody(m)}</div>
   </section>`;
 }
@@ -792,7 +797,22 @@ function renderBar() {
   $('#nextBtn').setAttribute('aria-disabled', state.step === 0 && !!m);
   $('#barMsg').textContent = m;
 }
+// 단계마다 브라우저 기록을 남겨, 브라우저 뒤로가기가 페이지를 떠나지 않고 이전 단계로 가게 한다
+let fromPop = false;
+function syncHistory() {
+  if (fromPop) { fromPop = false; return; }
+  if (history.state?.step === state.step) return;
+  const url = location.pathname + location.search + (state.step ? `#step${state.step + 1}` : '');
+  if (history.state == null) history.replaceState({ step: state.step }, '', url);
+  else history.pushState({ step: state.step }, '', url);
+}
+window.addEventListener('popstate', e => {
+  const st = e.state?.step ?? 0;
+  if (st > 0 && !state.scale) { history.replaceState({ step: 0 }, '', location.pathname); return go(0); }
+  fromPop = true; go(st);
+});
 function render(focusTitle) {
+  syncHistory();
   renderStepper(); renderTitle(); renderSidebar();
   $('#view').innerHTML = [vBasics, vMaps, vReview][state.step]();
   if (state.step === 1) mountNaver(cur());
@@ -803,6 +823,16 @@ function go(step) { state.step = Math.max(0, Math.min(2, step)); state.sel = nul
 // 사이드바(데스크톱)와 칩 목록(모바일) 중 화면에 보이는 쪽으로 포커스
 const mapBtn = i => [...document.querySelectorAll(`[data-map="${i}"]`)].find(e => e.offsetParent);
 function openMap(i, focusSel) { state.active = i; state.step = 1; state.sel = null; render(); (focusSel ? $(focusSel) : mapBtn(i))?.focus(); }
+
+// 복합 공간은 처음부터 지도 2장으로 시작한다. 단일로 바꾸면 비어 있는 지도만 정리한다
+const blank = m => !m.label.trim() && !m.source && !m.images.length;
+function setScale(v) {
+  state.scale = v;
+  if (!state.maps.length) state.maps.push(newMap());
+  if (v === 'multi') while (state.maps.length < 2) state.maps.push(newMap());
+  else { state.maps = state.maps.filter((m, i) => i === 0 || !blank(m)); state.active = Math.min(state.active, state.maps.length - 1); }
+}
+const NAME_HINTS = ['1층', '2층', '지하 1층', '야외'];
 
 /* ── 이벤트 ── */
 document.addEventListener('input', e => {
@@ -820,17 +850,24 @@ document.addEventListener('input', e => {
   }
 });
 document.addEventListener('change', e => {
-  if (e.target.name === 'scale') { state.scale = e.target.value; if (!state.maps.length) state.maps.push(newMap()); renderBar(); }
+  if (e.target.name === 'scale') { setScale(e.target.value); renderBar(); }
   if (e.target.name === 'vis') { state.vis = e.target.value; renderBar(); }
   if (e.target.id === 'imgFile') { addFiles([...e.target.files]); e.target.value = ''; }
   if (e.target.id === 'planFile') { const f = e.target.files[0]; if (f) setPlan(f); e.target.value = ''; }
 });
 document.addEventListener('click', e => {
-  const t = e.target.closest('button, #plan, a[href="#"]');
+  const t = e.target.closest('button, #plan, a[href="#"], #backBtn');
   if (!t) return;
   if (t.matches('a[href="#"]')) { e.preventDefault(); toast('시안이라 이동하지 않아요'); return; }
   if (t.id === 'saveDraft') { toast('임시 저장했어요 (시안)'); return; }
   if (t.dataset.gotoStep) { go(+t.dataset.gotoStep); return; }
+  if (t.dataset.nameHint) { cur().label = t.dataset.nameHint; render(); $('#mapName')?.focus(); return; }
+  if (t.id === 'backBtn') {
+    e.preventDefault();
+    if (!state.name.trim() && !state.maps.some(m => !blank(m))) { location.href = 'spaces.html'; return; }
+    confirmBox('만들던 공간을 두고 나갈까요?', '입력한 내용은 임시 저장돼요. 내 공간에서 이어서 만들 수 있어요.', t, () => { location.href = 'spaces.html'; }, '나가기', false);
+    return;
+  }
   if (t.dataset.map) { openMap(+t.dataset.map); return; }
   if (t.dataset.goto) { state.active = +t.dataset.goto; go(1); return; }
   if (t.id === 'addMapItem' || t.dataset.addMap !== undefined) {
@@ -969,8 +1006,9 @@ function pin(x, y) {
 
 /* AlertDialog: 네이티브 dialog로 포커스 트랩·Esc, 닫히면 원래 버튼으로 포커스 복귀 */
 let onOk = null, back = null;
-function confirmBox(title, desc, opener, ok) {
+function confirmBox(title, desc, opener, ok, okLabel = '삭제하기', danger = true) {
   $('#dlgT').textContent = title; $('#dlgD').textContent = desc;
+  $('#dlgOk').textContent = okLabel; $('#dlgOk').className = 'btn ' + (danger ? 'btn-destructive' : 'btn-primary');
   onOk = ok; back = opener;
   $('#dlg').showModal(); $('#dlgCancel').focus();
 }
@@ -985,7 +1023,7 @@ $('#nextBtn').onclick = () => {
     const i = state.maps.findIndex(m => !named(m));
     if (i >= 0) { state.nameTouched = true; openMap(i, '#mapName'); toast('방문자에게 보일 지도 이름을 붙여주세요'); return; }
   }
-  if (state.step === 2) { location.href = 'edit.html?new=1&name=' + encodeURIComponent(state.name); return; }
+  if (state.step === 2) { location.replace('edit.html?new=1&name=' + encodeURIComponent(state.name)); return; }
   go(state.step + 1);
 };
 let tt;

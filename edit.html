@@ -395,7 +395,7 @@ function keepFocus(fn) {
 function renderGnb() {
   const todo = S.photos.filter(p => todoOf(p).length).length;
   $('#gnb').innerHTML = `
-    <a class="btn btn-outline icon-btn" href="./" aria-label="내 공간으로 돌아가기">${ic('arrowLeft')}</a>
+    <a class="btn btn-outline icon-btn" href="spaces.html" aria-label="내 공간으로 돌아가기">${ic('arrowLeft')}</a>
     <h1>${esc(S.name)}</h1>
     <span class="badge ${S.vis === 'public' ? 'solid' : ''}">${S.vis === 'public' ? '공개 중' : '나만 보기'}</span>
     <span class="spacer"></span>

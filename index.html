@@ -214,8 +214,11 @@ fieldset { border: 0; margin: 0; padding: 0; min-width: 0; }
 .add-map { width: 100%; height: 44px; border-style: dashed; border-color: var(--semantic-border); box-shadow: none; }
 
 /* tip (Figma 460:1337) */
-.tip { background: var(--background); border-radius: var(--radius-lg); padding: 24px 18px; display: flex; gap: 20px; align-items: center; justify-content: center; }
-.tip p { margin: 0; color: var(--muted-foreground); }
+/* 팁 = shadcn Alert 구조(아이콘 + 제목 + 설명). 아이콘은 lucide, 받침은 기존 파란 계열 타일 */
+.tip { background: var(--background); border: 1px solid var(--border); border-radius: var(--radius-lg); box-shadow: var(--shadow-xs); padding: 16px; display: grid; grid-template-columns: 36px 1fr; column-gap: 12px; row-gap: 2px; align-items: start; }
+.tip-ico { grid-row: span 2; width: 36px; height: 36px; border-radius: 8px; background: var(--accent-bg); color: var(--accent); display: grid; place-items: center; }
+.tip-title { margin: 0; padding-top: 1px; font-size: 14px; line-height: 20px; font-weight: 600; color: var(--foreground); }
+.tip-desc { margin: 0; font-size: 13px; line-height: 20px; color: var(--muted-foreground); }
 .side-sec { display: flex; flex-direction: column; gap: 16px; }
 .side-sec h2 { margin: 0; }
 .flow { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
@@ -499,6 +502,13 @@ const named = m => !!m.label.trim();
 const done = m => (named(m) || !needsName()) && m.map && m.images.length > 0 && placed(m) === m.images.length;
 const dn = (m, i = state.maps.indexOf(m)) => named(m) ? m.label.trim() : needsName() ? `지도 ${i + 1}` : '지도';
 const cur = () => state.maps[state.active];
+// lucide 아이콘 (shadcn/ui 기본 아이콘 세트), 24 그리드 · stroke 2
+const LUCIDE = {
+  history: '<path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/><path d="M12 7v5l4 2"/>',
+  arrowUpDown: '<path d="m21 16-4 4-4-4"/><path d="M17 20V4"/><path d="m3 8 4-4 4 4"/><path d="M7 4v16"/>',
+  layers: '<path d="M12.83 2.18a2 2 0 0 0-1.66 0L2.6 6.08a1 1 0 0 0 0 1.83l8.58 3.91a2 2 0 0 0 1.66 0l8.58-3.9a1 1 0 0 0 0-1.83Z"/><path d="m22 17.65-9.17 4.16a2 2 0 0 1-1.66 0L2 17.65"/><path d="m22 12.65-9.17 4.16a2 2 0 0 1-1.66 0L2 12.65"/>',
+};
+const tip = (ic, title, desc) => `<div class="tip" role="note"><span class="tip-ico" aria-hidden="true"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${LUCIDE[ic]}</svg></span><p class="tip-title">${title}</p><p class="tip-desc">${desc}</p></div>`;
 // 비어 있으면 안내문 길이만큼, 채우면 글자 수만큼 제목 입력칸 너비를 맞춘다
 const titleSize = v => v.trim() ? Math.max(4, [...v].length + 2) : 24;
 
@@ -526,7 +536,7 @@ function renderSidebar() {
         <h2 id="flowH" class="t-base-sb">이렇게 진행돼요</h2>
         <ol class="flow">${STEPS.map((s, i) => `<li${i === 0 ? ' aria-current="step"' : ''}><span class="no" aria-hidden="true">${i + 1}</span><span><span class="t-sm-sb">${s.name}</span><br><span class="t-xs muted">${s.hint}</span></span></li>`).join('')}</ol>
       </section>
-      <div class="tip">${icon('lightbulb-ai', 32)}<p class="t-sm">한 번에 다 못 채워도 괜찮아요.<br>임시 저장하고 나중에 이어서 할 수 있어요.</p></div>`;
+      ${tip('history', '나중에 이어서 해도 돼요', '한 번에 다 못 채워도 괜찮아요. 임시 저장하고 이어서 등록할 수 있어요.')}`;
     return;
   }
   const n = state.maps.length, ok = state.maps.filter(done).length;
@@ -548,7 +558,10 @@ function renderSidebar() {
         </button></li>`).join('')}</ul>
       ${isSingle() && n === 1 ? '' : `<button class="btn btn-outline add-map" type="button" id="addMapItem">${icon('plus', 16)}지도 추가</button>`}
     </section>
-    <div class="tip">${icon('lightbulb-ai', 32)}<p class="t-sm">${state.step === 1 ? (needsName() ? '위에서부터 방문자에게 보이는 순서예요.<br>순서는 지도의 ⋯ 메뉴에서 바꿔요.' : '층이나 구역이 더 있으면<br>복합 공간으로 바꿔주세요.') : '다 못 채운 지도는<br>나중에 이어서 채울 수 있어요.'}</p></div>`;
+    ${state.step === 1
+      ? (needsName() ? tip('arrowUpDown', '보이는 순서예요', '위에서부터 방문자에게 보이는 순서예요. 지도의 ⋯ 메뉴에서 바꿀 수 있어요.')
+                     : tip('layers', '구역이 더 있나요?', '층이나 구역이 더 있으면 복합 공간으로 바꿔주세요.'))
+      : tip('history', '나중에 채워도 돼요', '다 못 채운 지도는 나중에 이어서 채울 수 있어요.')}`;
 }
 
 /* ── 단계별 본문 ── */

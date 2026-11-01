@@ -5,6 +5,8 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>공간 편집 개선 시안</title>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/pretendard@1.3.9/dist/web/variable/pretendardvariable.min.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/pannellum/2.5.6/pannellum.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pannellum/2.5.6/pannellum.js"></script>
 <style>
 /* 편집 화면 = 공간 등록 시안(index.html)과 같은 토큰·컴포넌트. Figma에 없는 것은 shadcn/ui 스펙 */
 :root {
@@ -123,13 +125,19 @@ select.input { padding-right: 8px; }
 /* 360 보기 */
 .stage { position: relative; min-width: 0; min-height: 0; background: #1b1d22; overflow: hidden; }
 .pano { position: absolute; inset: 0; cursor: grab; touch-action: none; }
+.pano .pnlm-container, .pano.pnlm-container { background: #1b1d22; font-family: var(--font); }
+.ov-layer { position: absolute; inset: 0; pointer-events: none; z-index: 3; }
+.ov-layer > * { pointer-events: auto; }
+.ov-layer > .cross { pointer-events: none; }
+.hs-wrap, .start-hs { width: auto; height: auto; }
+.hs-wrap { z-index: 2; }
+.start-hs span { display: inline-block; transform: translate(-50%, -50%); background: rgba(255,255,255,.92); color: var(--foreground); font-size: 12px; font-weight: 600; padding: 2px 8px; border-radius: 6px; white-space: nowrap; pointer-events: none; border: 1px dashed var(--semantic-border); }
+.placing .pano, .placing .pnlm-dragfix, .placing .pnlm-ui { cursor: crosshair !important; }
 .pano:active { cursor: grabbing; }
 .pano:focus-visible { outline: 3px solid var(--focus); outline-offset: -3px; }
-.strip { position: absolute; top: 0; bottom: 0; left: 0; width: 300%; will-change: transform; }
-.strip svg { width: 100%; height: 100%; display: block; }
 .pano-img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; object-position: center 45%; display: block; user-select: none; -webkit-user-drag: none; }
 .placing .pano { cursor: crosshair; }
-.hs { position: absolute; transform: translate(-50%, -50%); display: inline-flex; align-items: center; gap: 6px; height: 36px; padding: 0 12px 0 6px; border-radius: 999px; border: 0; background: rgba(255,255,255,.96); color: var(--foreground); font-size: 13px; font-weight: 600; box-shadow: 0 2px 8px rgba(0,0,0,.25); cursor: pointer; white-space: nowrap; }
+.hs { display: inline-flex; align-items: center; gap: 6px; height: 36px; padding: 0 12px 0 6px; border-radius: 999px; border: 0; background: rgba(255,255,255,.96); color: var(--foreground); font-size: 13px; font-weight: 600; box-shadow: 0 2px 8px rgba(0,0,0,.25); cursor: pointer; white-space: nowrap; }
 .hs .hs-ico { width: 24px; height: 24px; border-radius: 99px; background: var(--foreground); color: #fff; display: grid; place-items: center; }
 .hs .hs-ico svg { width: 14px; height: 14px; }
 .hs[aria-pressed="true"] { box-shadow: 0 0 0 3px var(--accent), 0 2px 8px rgba(0,0,0,.25); }
@@ -356,13 +364,13 @@ const S = {
     { id: 2, label: '실내 수영장', route: { from: null, to: null } },
   ],
   photos: [
-    { id: 1, map: 1, name: '객실 입구', img: 'entrance', file: 'IMG_20260722_113628_00_137.jpg', pin: { x: 16, y: 68 }, start: 150, c: [{ id: 1, type: 'move', target: 2, x: 150, y: 64 }, { id: 2, type: 'text', title: '체크인 안내', body: '도어락 비밀번호는 예약 문자로 보내드려요.', x: 92, y: 46 }] },
-    { id: 2, map: 1, name: '거실', img: 'living', file: 'IMG_20260722_113715_00_138.jpg', pin: { x: 38, y: 50 }, start: 150, c: [{ id: 3, type: 'move', target: 1, x: 40, y: 58 }] },
-    { id: 3, map: 1, name: '침실', img: 'bedroom', file: 'IMG_20260722_113732_00_139.jpg', pin: { x: 62, y: 34 }, start: 150, c: [] },
-    { id: 4, map: 1, name: '욕실', img: 'bathroom', file: 'IMG_20260722_113812_00_140.jpg', pin: null, start: 150, c: [] },
-    { id: 5, map: 2, name: '실내 수영장', img: 'pool', file: 'IMG_20260915_145130_00_268.jpg', pin: { x: 50, y: 50 }, start: 205, c: [] },
+    { id: 1, map: 1, name: '객실 입구', img: 'entrance', file: 'IMG_20260722_113628_00_137.jpg', pin: { x: 16, y: 68 }, start: 0, c: [{ id: 1, type: 'move', target: 2, yaw: 0, pitch: -8 }, { id: 2, type: 'text', title: '체크인 안내', body: '도어락 비밀번호는 예약 문자로 보내드려요.', yaw: -70, pitch: 4 }] },
+    { id: 2, map: 1, name: '거실', img: 'living', file: 'IMG_20260722_113715_00_138.jpg', pin: { x: 38, y: 50 }, start: 0, c: [{ id: 3, type: 'move', target: 1, yaw: -133, pitch: -6 }] },
+    { id: 3, map: 1, name: '침실', img: 'bedroom', file: 'IMG_20260722_113732_00_139.jpg', pin: { x: 62, y: 34 }, start: 0, c: [] },
+    { id: 4, map: 1, name: '욕실', img: 'bathroom', file: 'IMG_20260722_113812_00_140.jpg', pin: null, start: 0, c: [] },
+    { id: 5, map: 2, name: '실내 수영장', img: 'pool', file: 'IMG_20260915_145130_00_268.jpg', pin: { x: 50, y: 50 }, start: 72, c: [] },
   ],
-  cover: 1, mapId: 1, cur: 1, sel: null, filter: 'all', q: '', pan: .3, placing: null, saving: false,
+  cover: 1, mapId: 1, cur: 1, sel: null, filter: 'all', q: '', placing: null, saving: false,
 };
 let uid = 100;
 const P = id => S.photos.find(p => p.id === id);
@@ -484,34 +492,50 @@ function renderSide() {
     </section>`; });
 }
 
-function panoSvg(p) {
-  const [sky, ground] = SKY[(p.id - 1) % SKY.length];
-  let h = '', s = p.id * 97;
-  const r = () => (s = (s * 9301 + 49297) % 233280) / 233280;
-  for (let i = 0; i < 9; i++) { const x = r() * 1180, w = 40 + r() * 70, ht = 30 + r() * 60; h += `<rect x="${x}" y="${330 - ht}" width="${w}" height="${ht}" fill="#5b6470" opacity=".55" rx="2"/>`; }
-  for (let i = 0; i < 16; i++) { const x = r() * 1200, rr = 10 + r() * 18; h += `<circle cx="${x}" cy="${322 - rr}" r="${rr}" fill="#3f6b45" opacity=".8"/>`; }
-  return `<svg viewBox="0 0 1200 500" preserveAspectRatio="none" aria-hidden="true">
-    <defs><linearGradient id="sk${p.id}" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${sky}"/><stop offset="1" stop-color="#eef4fb"/></linearGradient>
-    <linearGradient id="gr${p.id}" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${ground}"/><stop offset="1" stop-color="#3b3a36"/></linearGradient></defs>
-    <rect width="1200" height="330" fill="url(#sk${p.id})"/>
-    <path d="M0 300 C120 220 220 260 330 230 C430 205 520 270 640 236 C760 200 860 250 980 222 C1080 200 1150 240 1200 230 L1200 330 L0 330Z" fill="#6f8d74" opacity=".7"/>
-    ${h}<rect y="330" width="1200" height="170" fill="url(#gr${p.id})"/>
-    <path d="M520 500 L585 330 L615 330 L680 500Z" fill="#fff" opacity=".12"/></svg>`;
+// 360 보기 = Pannellum(equirectangular). 콘텐츠 위치는 사진 안의 방향(yaw·pitch, 도)으로 저장한다
+let V = null, vFor = null, hsIds = [];
+const normYaw = y => ((y + 540) % 360) - 180;
+function hsHtml(c) {
+  const t = TYPES[c.type];
+  return `<button class="hs${c.type === 'area' || c.type === 'areaMedia' ? ' area' : ''}" type="button" data-hs="${c.id}" aria-pressed="${S.sel === c.id}" aria-label="${esc(label(c))}, ${t.name}">
+    <span class="hs-ico">${ic(t.icon)}</span>${esc(label(c))}</button>`;
 }
-
+function syncHotspots() {
+  const p = curP();
+  hsIds.forEach(id => { try { V.removeHotSpot(id); } catch (e) {} });
+  hsIds = [];
+  const add = (id, o) => { V.addHotSpot({ id, ...o }); hsIds.push(id); };
+  add('start', { pitch: 28, yaw: p.start, cssClass: 'start-hs', createTooltipFunc: d => { d.innerHTML = '<span>처음 보이는 방향</span>'; } });
+  p.c.forEach(c => add('c' + c.id, { pitch: c.pitch, yaw: c.yaw, cssClass: 'hs-wrap', createTooltipFunc: d => {
+    d.innerHTML = hsHtml(c);
+    const b = d.querySelector('button');
+    b.onclick = e => { e.stopPropagation(); S.sel = c.id; syncHotspots(); renderPanel(); };
+    b.ondblclick = e => { e.stopPropagation(); if (c.type === 'move' && c.target) goPhoto(c.target); };
+    b.onpointerdown = e => e.stopPropagation();
+  } }));
+}
+function mountViewer() {
+  const p = curP();
+  V?.destroy();
+  $('#viewer').innerHTML = '';
+  V = pannellum.viewer('viewer', {
+    type: 'equirectangular', panorama: `assets/pano/${p.img}.jpg`, autoLoad: true,
+    yaw: p.start, pitch: 0, hfov: 100, minHfov: 50, maxHfov: 120,
+    showControls: false, showFullscreenCtrl: false, compass: false, keyboardZoom: true, friction: .2,
+  });
+  vFor = S.cur; hsIds = [];
+  V.on('load', syncHotspots);
+}
 function renderStage() {
   const p = curP();
-  const hs = p.c.map(c => {
-    const t = TYPES[c.type];
-    return `<button class="hs${c.type === 'area' || c.type === 'areaMedia' ? ' area' : ''}" type="button" data-hs="${c.id}" data-k="hs${c.id}" aria-pressed="${S.sel === c.id}" style="left:${c.x / 3}%;top:${c.y}%" aria-label="${esc(label(c))}, ${t.name}">
-      <span class="hs-ico">${ic(t.icon)}</span>${esc(label(c))}</button>`;
-  }).join('');
-  keepFocus(() => { $('#stage').className = 'stage' + (S.placing ? ' placing' : ''); $('#stage').innerHTML = `
-    <div class="pano" id="viewer" tabindex="0" role="application" aria-roledescription="360 사진 보기" aria-label="${esc(p.name)} 360 사진. 좌우 방향키로 둘러볼 수 있어요.${S.placing ? ' Enter를 누르면 가운데에 놓여요.' : ''}" data-k="viewer">
-      <div class="strip" id="strip" style="transform:translateX(${-S.pan * 66.6667}%)">${p.img ? `<img class="pano-img" src="assets/pano/${p.img}.jpg" alt="" draggable="false">` : panoSvg(p)}
-        <span class="start-mark" style="left:${p.start / 3}%"><span>처음 보이는 방향</span></span>
-        ${hs}</div>
-    </div>
+  if (!$('#viewer')) {
+    $('#stage').innerHTML = `<div class="pano" id="viewer" tabindex="0" role="application" aria-roledescription="360 사진 보기" data-k="viewer"></div><div class="ov-layer" id="ovl"></div>`;
+    bindViewer();
+  }
+  if (vFor !== S.cur) mountViewer(); else if (V?.isLoaded()) syncHotspots();
+  $('#stage').className = 'stage' + (S.placing ? ' placing' : '');
+  $('#viewer').setAttribute('aria-label', `${p.name} 360 사진. 방향키로 둘러보고 +, -로 확대해요.${S.placing ? ' Enter를 누르면 가운데에 놓여요.' : ''}`);
+  keepFocus(() => { $('#ovl').innerHTML = `
     ${S.placing ? `<span class="cross" aria-hidden="true"></span>
       <div class="ov place-bar" role="status"><span>${esc(j(TYPES[typeof S.placing === 'number' ? S.placingType : S.placing].name, '을', '를'))} 놓을 자리를 눌러주세요</span><button class="btn btn-outline btn-sm" type="button" id="cancelPlace" data-k="cancelPlace">취소</button></div>` : ''}
     <div class="ov ov-info">
@@ -577,48 +601,43 @@ const backOf = (p, c) => c.target && P(c.target)?.c.find(k => k.type === 'move' 
 function ensureBack(p, c) {
   const t = P(c.target);
   if (!t || backOf(p, c)) return false;
-  const b = { id: uid++, type: 'move', target: p.id, x: (c.x + 150) % 300, y: c.y };
+  const b = { id: uid++, type: 'move', target: p.id, yaw: normYaw(c.yaw + 180), pitch: c.pitch };
   t.c.push(b); c.backId = b.id;
   return true;
 }
 
 /* ── 360 보기 상호작용 ── */
-function setPan(v) { S.pan = Math.min(1, Math.max(0, v)); const s = $('#strip'); if (s) s.style.transform = `translateX(${-S.pan * 66.6667}%)`; }
-function bindStage() {
+const turn = d => V && V.setYaw(normYaw(V.getYaw() + d), 400);
+// 뷰어 컨테이너는 한 번만 만들고, 끌기와 구분되는 '누르기'만 놓기로 받는다
+function bindViewer() {
   const v = $('#viewer');
-  let drag = null;
-  v.onpointerdown = e => { if (e.target.closest('.hs')) return; drag = { x: e.clientX, pan: S.pan, moved: false }; v.setPointerCapture(e.pointerId); };
-  v.onpointermove = e => { if (!drag) return; const dx = e.clientX - drag.x; if (Math.abs(dx) > 4) drag.moved = true; setPan(drag.pan - dx / (v.clientWidth * 2)); };
-  v.onpointerup = e => {
-    if (drag && !drag.moved && S.placing) {
-      const r = $('#strip').getBoundingClientRect();
-      place(((e.clientX - r.left) / r.width) * 300, ((e.clientY - r.top) / r.height) * 100);
-    }
-    drag = null;
-  };
-  v.onkeydown = e => {
-    if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') { e.preventDefault(); setPan(S.pan + (e.key === 'ArrowLeft' ? -.06 : .06)); }
-    if (e.key === 'Enter' && S.placing) { e.preventDefault(); place(S.pan * 200 + 50, 58); }
+  let down = null;
+  v.addEventListener('pointerdown', e => { down = { x: e.clientX, y: e.clientY }; }, true);
+  v.addEventListener('pointerup', e => {
+    const tap = down && Math.hypot(e.clientX - down.x, e.clientY - down.y) < 5; down = null;
+    if (!tap || !S.placing || e.target.closest('.hs')) return;
+    const [pitch, yaw] = V.mouseEventToCoords(e); place(pitch, yaw);
+  }, true);
+  v.addEventListener('keydown', e => {
+    if (e.key === 'Enter' && S.placing) { e.preventDefault(); place(V.getPitch(), V.getYaw()); }
     if (e.key === 'Escape' && S.placing) cancelPlace();
-  };
-  $('#panL').onclick = () => setPan(S.pan - .15);
-  $('#panR').onclick = () => setPan(S.pan + .15);
-  $('#stage').querySelectorAll('[data-hs]').forEach(b => {
-    b.onclick = () => { S.sel = +b.dataset.hs; renderStage(); renderPanel(); };
-    b.ondblclick = () => { const c = curP().c.find(x => x.id === +b.dataset.hs); if (c.type === 'move' && c.target) goPhoto(c.target); };
   });
+}
+function bindStage() {
+  $('#panL').onclick = () => turn(-45);
+  $('#panR').onclick = () => turn(45);
   const n = $('#pName');
   n.onchange = () => { const v2 = n.value.trim(); if (!v2) { n.value = curP().name; return toast('사진 이름을 비울 수 없어요'); } curP().name = v2; changed(); renderSide(); renderPanel(); };
   n.onkeydown = e => { if (e.key === 'Enter') n.blur(); };
   $('#cancelPlace') && ($('#cancelPlace').onclick = cancelPlace);
   $('#autoLink').onclick = autoLink;
-  $('#setStart').onclick = () => { curP().start = Math.round(S.pan * 200 + 50); changed(); renderStage(); toast(`${j('‘' + curP().name + '’', '은', '는')} 지금 방향으로 시작해요`); };
+  $('#setStart').onclick = () => { curP().start = Math.round(V.getYaw()); changed(); syncHotspots(); toast(`${j('‘' + curP().name + '’', '은', '는')} 지금 방향으로 시작해요`); };
 }
-function place(x, y) {
+function place(pitch, yaw) {
   const p = curP();
-  if (typeof S.placing === 'number') { const c = p.c.find(k => k.id === S.placing); Object.assign(c, { x, y }); S.sel = c.id; }
+  if (typeof S.placing === 'number') { const c = p.c.find(k => k.id === S.placing); Object.assign(c, { pitch, yaw }); S.sel = c.id; }
   else {
-    const c = { id: uid++, type: S.placing, x, y };
+    const c = { id: uid++, type: S.placing, pitch, yaw };
     if (c.type === 'move') { const cand = photosOf(p.map).find(o => o.id !== p.id && !p.c.some(k => k.target === o.id)); c.target = cand?.id ?? null; c.twoWay = true; }
     p.c.push(c); S.sel = c.id;
     if (c.type === 'move' && ensureBack(p, c)) setTimeout(() => toast(`${j('‘' + P(c.target).name + '’', '에도', '에도')} 돌아오는 버튼을 만들었어요`), 0);
@@ -628,7 +647,7 @@ function place(x, y) {
 }
 function cancelPlace() { S.placing = null; renderStage(); $('#addC')?.focus(); }
 function goPhoto(id) {
-  const p = P(id); S.cur = id; S.mapId = p.map; S.sel = null; S.placing = null; S.pan = Math.min(1, Math.max(0, (p.start - 50) / 200)); render();
+  const p = P(id); S.cur = id; S.mapId = p.map; S.sel = null; S.placing = null; render();
 }
 
 // 가까운 사진끼리 이동 버튼을 만든다. 실행 전에 무엇이 바뀌는지 알리고, 실행 후엔 되돌릴 수 있게
@@ -649,7 +668,7 @@ function autoLink() {
     onOk: () => {
       const made = plan.map(([p, o]) => {
         const deg = (Math.atan2(o.pin.y - p.pin.y, o.pin.x - p.pin.x) * 180 / Math.PI + 360) % 360;
-        const c = { id: uid++, type: 'move', target: o.id, x: 10 + deg / 360 * 280, y: 58 };
+        const c = { id: uid++, type: 'move', target: o.id, yaw: normYaw(deg + 90), pitch: -10 };
         p.c.push(c); return [p, c];
       });
       changed(); render();
@@ -662,7 +681,7 @@ function bindPanel() {
   const p = curP(), c = p.c.find(x => x.id === S.sel);
   $('#addC').onclick = openPicker;
   $('#panel').querySelectorAll('[data-sel]').forEach(b => b.onclick = () => {
-    S.sel = +b.dataset.sel; const k = p.c.find(x => x.id === S.sel); setPan((k.x - 50) / 200); renderStage(); renderPanel(); });
+    S.sel = +b.dataset.sel; const k = p.c.find(x => x.id === S.sel); V?.lookAt(k.pitch, k.yaw, undefined, 600); syncHotspots(); renderPanel(); });
   if (!c) return;
   $('#closeDetail').onclick = () => { S.sel = null; renderStage(); renderPanel(); $('#addC').focus(); };
   const t = $('#fTarget'); if (t) t.onchange = () => {

@@ -85,6 +85,8 @@ img { display: block; }
 .stepper li { display: flex; align-items: center; gap: 6px; padding: 6px 0; font-size: 14px; line-height: 20px; color: var(--muted-foreground); white-space: nowrap; }
 .stepper li + li::before { content: ""; width: 17px; height: 1px; background: var(--border); margin-right: 2px; }
 .stepper .num { width: 24px; height: 24px; border-radius: 8px; background: var(--secondary); color: var(--muted-foreground); font-size: 12px; line-height: 16px; font-weight: 700; display: grid; place-items: center; }
+.stepper .step-btn { display: inline-flex; align-items: center; gap: 6px; border: 0; background: none; padding: 4px 6px; margin: 0 -6px; border-radius: 6px; cursor: pointer; color: inherit; font: inherit; }
+.stepper .step-btn:hover { background: var(--secondary); }
 .stepper li[aria-current="step"] { color: var(--foreground); font-weight: 600; }
 .stepper li[aria-current="step"] .num { background: var(--accent); color: #fff; }
 .stepper li.done { color: var(--foreground); }
@@ -225,16 +227,28 @@ fieldset { border: 0; margin: 0; padding: 0; min-width: 0; }
 .side-sec { display: flex; flex-direction: column; gap: 16px; }
 .side-sec h2 { margin: 0; }
 .flow { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
-.flow li { display: flex; gap: 12px; align-items: flex-start; padding: 12px 16px; border: 1px solid var(--border); border-radius: var(--radius-lg); background: var(--background); }
-.flow .no { width: 24px; height: 24px; border-radius: 8px; flex: none; background: var(--secondary); display: grid; place-items: center; font-size: 12px; font-weight: 700; color: var(--muted-foreground); }
-.flow li[aria-current="step"] .no { background: var(--accent); color: #fff; }
+.flow li { display: flex; flex-direction: column; border: 1px solid var(--border); border-radius: var(--radius-lg); background: var(--background); }
+.flow-btn { display: flex; gap: 12px; align-items: flex-start; width: 100%; padding: 12px 16px; border: 0; background: none; border-radius: inherit; text-align: left; cursor: pointer; }
+.flow li:not([aria-current="step"]) .flow-btn:hover { background: var(--secondary); }
+.flow-txt { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.flow-txt .muted { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.flow li.done > .flow-btn .no { background: var(--foreground); color: var(--primary-foreground); }
+.flow-sub { padding: 0 12px 12px; display: flex; flex-direction: column; gap: 8px; }
+.items.sub { gap: 6px; }
+.items.sub .item { padding: 8px 10px; gap: 8px; }
+.items.sub .item .label { font-size: 14px; line-height: 20px; }
+.items.sub .item .no { width: 22px; font-size: 13px; line-height: 20px; padding: 0; }
+.items.sub .marks { gap: 6px; }
+.flow-sub .add-map { height: 36px; background: var(--background); }
+.flow-btn .no { width: 24px; height: 24px; border-radius: 8px; flex: none; background: var(--secondary); display: grid; place-items: center; font-size: 12px; font-weight: 700; color: var(--muted-foreground); }
+.flow li[aria-current="step"] > .flow-btn .no { background: var(--accent); color: #fff; }
 /* 현재 단계 = 공간 유형 카드·지도 행의 선택 표현과 같은 파랑 (accent 테두리 + accent-bg) */
 .flow li[aria-current="step"] { border-color: var(--accent); background: var(--accent-bg); }
 /* #737373은 accent-bg 위 4.37:1로 AA 미달 → #525252 (7.2:1) */
 .flow li[aria-current="step"] .muted { color: #525252; }
 /* 아직 오지 않은 단계는 상단 스테퍼처럼 회색으로 — 선택된 것처럼 보이지 않게 */
 .flow li:not([aria-current="step"]) { background: #FDFDFD; }
-.flow li:not([aria-current="step"]) .t-sm-sb { color: var(--muted-foreground); font-weight: 500; }
+.flow li:not([aria-current="step"]):not(.done) .t-sm-sb { color: var(--muted-foreground); font-weight: 500; }
 .progress { font-size: 12px; line-height: 16px; color: var(--muted-foreground); }
 
 /* ── 아래부터 Figma에 없는 컴포넌트 = shadcn/ui 스펙 (Tabs, Card, Badge, Table, AlertDialog, Checkbox, RadioGroup, Sonner, Progress) ── */
@@ -520,8 +534,11 @@ const tip = (ic, title, desc) => `<div class="tip" role="note"><span class="tip-
 const titleSize = v => v.trim() ? Math.max(4, [...v].length + 2) : 24;
 
 /* ── 상단 ── */
+// 단계 완료 여부는 '지나왔는지'가 아니라 '채웠는지'로 판단한다 — 단계를 자유롭게 오가도 상태가 맞게
+const stepDone = i => i === 0 ? !!(state.name.trim() && state.scale) : i === 1 ? state.maps.length > 0 && state.maps.every(done) : false;
 function renderStepper() {
-  $('#stepper').innerHTML = STEPS.map((s, i) => `<li class="${i < state.step ? 'done' : ''}"${i === state.step ? ' aria-current="step"' : ''}><span class="num" aria-hidden="true">${i < state.step ? '✓' : i + 1}</span>${s.name}<span class="sr-only">${i < state.step ? ' (완료)' : ''}</span></li>`).join('');
+  $('#stepper').innerHTML = STEPS.map((s, i) => { const d = stepDone(i) && i !== state.step;
+    return `<li class="${d ? 'done' : ''}"${i === state.step ? ' aria-current="step"' : ''}><button class="step-btn" type="button" data-goto-step="${i}"><span class="num" aria-hidden="true">${d ? '✓' : i + 1}</span>${s.name}<span class="sr-only">${d ? ' (완료)' : ''}</span></button></li>`; }).join('');
 }
 function renderTitle() {
   const t = [
@@ -534,44 +551,51 @@ function renderTitle() {
   $('#titleBlock').innerHTML = `<h1 class="t-3xl" tabindex="-1">${esc(t[0])}</h1><p class="t-sm muted">${t[1]}</p>`;
 }
 
-/* ── 사이드바: 1단계엔 진행 순서만, 그다음부터 지도 목록(=ItemOrder) ── */
+/* ── 사이드바: 모든 단계에서 같은 단계 카드. 현재 단계 카드가 펼쳐지고, 지난 단계는 입력한 내용을 요약 ── */
+function mapsSub() {
+  const n = state.maps.length;
+  return `<div class="flow-sub">
+    <ul class="items sub">${state.maps.map((m, i) => `<li>
+      <button class="item" type="button" data-map="${i}"${i === state.active ? ' aria-current="true"' : ''}>
+        <span class="lead"><span class="no" aria-hidden="true">${i + 1}</span><span class="label"${named(m) || !needsName() ? '' : ' style="color:var(--muted-foreground);font-weight:500"'}>${esc(named(m) || !needsName() ? dn(m, i) : '이름 없음')}</span></span>
+        <span class="marks">
+          <span class="mark ${m.map ? 'on' : 'off'}">${icon('map-pin', 16)}<span>${m.map ? '지도' : '없음'}</span></span>
+          <span class="mark ${m.images.length && placed(m) === m.images.length ? 'on' : 'off'}">${icon('photo-circle', 16)}<span>${placed(m)}/${m.images.length}</span></span>
+        </span>
+      </button></li>`).join('')}</ul>
+    ${isSingle() && n === 1 ? '' : `<button class="btn btn-outline add-map" type="button" id="addMapItem">${icon('plus', 16)}지도 추가</button>`}
+  </div>`;
+}
 function renderSidebar() {
-  const sb = $('#sidebar');
-  if (state.step === 0) {
-    sb.innerHTML = `
-      <section class="side-sec" aria-labelledby="flowH">
-        <h2 id="flowH" class="t-base-sb">이렇게 진행돼요</h2>
-        <ol class="flow">${STEPS.map((s, i) => `<li${i === 0 ? ' aria-current="step"' : ''}><span class="no" aria-hidden="true">${i + 1}</span><span><span class="t-sm-sb">${s.name}</span><br><span class="t-xs muted">${s.hint}</span></span></li>`).join('')}</ol>
-      </section>
-      ${tip('history', '임시 저장', '입력한 내용을 저장해 두고 나중에 이어서 등록할 수 있어요.')}`;
-    return;
-  }
   const n = state.maps.length, ok = state.maps.filter(done).length;
-  sb.innerHTML = `
-    <section class="side-sec" aria-labelledby="nameH">
-      <h2 id="nameH" class="t-base-sb">공간 이름</h2>
-      <div class="t-sm" style="display:flex;justify-content:space-between;align-items:center">${esc(state.name)}<button class="btn btn-ghost" type="button" data-goto-step="0" style="height:28px;padding:0 8px;font-size:13px">수정</button></div>
+  const sum = [
+    stepDone(0) ? `${state.name.trim()} · ${isSingle() ? '단일 공간' : '복합 공간'}` : STEPS[0].hint,
+    n ? `지도 ${n}장 · ${ok}장 완료` : STEPS[1].hint,
+    STEPS[2].hint,
+  ];
+  const tips = [
+    tip('history', '임시 저장', '입력한 내용을 저장해 두고 나중에 이어서 등록할 수 있어요.'),
+    needsName() ? tip('arrowUpDown', '보이는 순서예요', '위에서부터 방문자에게 보이는 순서예요. 지도의 ⋯ 메뉴에서 바꿀 수 있어요.')
+                : tip('layers', '구역이 더 있나요?', '층이나 구역이 더 있으면 복합 공간으로 바꿔주세요.'),
+    tip('history', '나중에 이어서 채우기', '다 못 채운 지도는 공간을 만든 뒤 내 공간의 ‘편집’에서 이어서 채울 수 있어요.'),
+  ];
+  $('#sidebar').innerHTML = `
+    <section class="side-sec" aria-labelledby="flowH">
+      <h2 id="flowH" class="t-base-sb">이렇게 진행돼요</h2>
+      <ol class="flow">${STEPS.map((s, i) => { const curr = i === state.step, d = stepDone(i) && !curr;
+        return `<li class="${d ? 'done' : ''}"${curr ? ' aria-current="step"' : ''}>
+          <button class="flow-btn" type="button" data-goto-step="${i}"><span class="no" aria-hidden="true">${d ? '✓' : i + 1}</span>
+            <span class="flow-txt"><span class="t-sm-sb">${s.name}<span class="sr-only">${d ? ' (완료)' : ''}</span></span><span class="t-xs muted">${esc(sum[i])}</span></span></button>
+          ${i === 1 && curr && n ? mapsSub() : ''}
+        </li>`; }).join('')}</ol>
     </section>
-    <section class="side-sec" aria-labelledby="zoneH">
-      <h2 id="zoneH" class="t-base-sb">지도 ${n}장</h2>
-      <p class="progress" style="margin:0">${n}장 중 ${ok}장 완료</p>
-      <ul class="items">${state.maps.map((m, i) => `<li>
-        <button class="item" type="button" data-map="${i}"${state.step === 1 && i === state.active ? ' aria-current="true"' : ''}>
-          <span class="lead"><span class="no" aria-hidden="true">${i + 1}</span><span class="label"${named(m) || !needsName() ? '' : ' style="color:var(--muted-foreground);font-weight:500"'}>${esc(named(m) || !needsName() ? dn(m, i) : '이름 없음')}</span></span>
-          <span class="marks">
-            <span class="mark ${m.map ? 'on' : 'off'}">${icon('map-pin')}<span>${m.map ? '지도' : '지도 없음'}</span></span>
-            <span class="mark ${m.images.length && placed(m) === m.images.length ? 'on' : 'off'}">${icon('photo-circle')}<span>${placed(m)}/${m.images.length}</span></span>
-          </span>
-        </button></li>`).join('')}</ul>
-      ${isSingle() && n === 1 ? '' : `<button class="btn btn-outline add-map" type="button" id="addMapItem">${icon('plus', 16)}지도 추가</button>`}
-    </section>
-    ${state.step === 1
-      ? (needsName() ? tip('arrowUpDown', '보이는 순서예요', '위에서부터 방문자에게 보이는 순서예요. 지도의 ⋯ 메뉴에서 바꿀 수 있어요.')
-                     : tip('layers', '구역이 더 있나요?', '층이나 구역이 더 있으면 복합 공간으로 바꿔주세요.'))
-      : tip('history', '나중에 이어서 채우기', '다 못 채운 지도는 공간을 만든 뒤 내 공간의 ‘편집’에서 이어서 채울 수 있어요.')}`;
+    ${tips[state.step]}`;
 }
 
 /* ── 단계별 본문 ── */
+const vNeedScale = () => `<section class="panel"><div class="panel-body" style="padding:32px 24px;text-align:center">
+  <p class="t-sm-sb" style="margin:0 0 4px">공간 크기를 먼저 골라주세요</p><p class="t-sm muted" style="margin:0 0 16px">단일 공간인지 복합 공간인지에 따라 지도 수가 달라져요.</p>
+  <button class="btn btn-primary" type="button" data-goto-step="0">공간 등록으로 가기</button></div></section>`;
 function vBasics() {
   const e1 = state.touched && !state.name.trim(), e2 = state.touched && !state.scale;
   return `
@@ -779,6 +803,7 @@ function blocker() {
     const noName = !state.name.trim(), noScale = !state.scale;
     return noName && noScale ? '공간 이름과 크기를 알려주세요.' : noName ? '공간 이름을 알려주세요.' : noScale ? '공간 크기를 골라주세요.' : '';
   }
+  if (state.step > 0 && !state.maps.length) return '공간 크기를 먼저 골라주세요.';
   if (state.step === 1) {
     const m = cur();
     if (needsName() && !named(m)) return '방문자에게 보일 지도 이름을 붙여주세요.';
@@ -814,8 +839,9 @@ window.addEventListener('popstate', e => {
 function render(focusTitle) {
   syncHistory();
   renderStepper(); renderTitle(); renderSidebar();
-  $('#view').innerHTML = [vBasics, vMaps, vReview][state.step]();
-  if (state.step === 1) mountNaver(cur());
+  $('#view').innerHTML = state.step > 0 && !state.maps.length ? vNeedScale() : [vBasics, vMaps, vReview][state.step]();
+  if (state.step === 1 && state.maps.length) mountNaver(cur());
+  $('#backBtn').setAttribute('aria-label', state.step > 0 ? '이전 단계로' : '내 공간으로 돌아가기');
   renderBar();
   if (focusTitle) $('#titleBlock h1').focus();
 }
@@ -863,9 +889,8 @@ document.addEventListener('click', e => {
   if (t.dataset.gotoStep) { go(+t.dataset.gotoStep); return; }
   if (t.dataset.nameHint) { cur().label = t.dataset.nameHint; render(); $('#mapName')?.focus(); return; }
   if (t.id === 'backBtn') {
-    e.preventDefault();
-    if (!state.name.trim() && !state.maps.some(m => !blank(m))) { location.href = 'spaces.html'; return; }
-    confirmBox('만들던 공간을 두고 나갈까요?', '입력한 내용은 임시 저장돼요. 내 공간에서 이어서 만들 수 있어요.', t, () => { location.href = 'spaces.html'; }, '나가기', false);
+    // 2·3단계에선 이전 단계로, 1단계에선 내 공간으로. 입력한 내용은 임시 저장되므로 묻지 않는다
+    if (state.step > 0) { e.preventDefault(); go(state.step - 1); }
     return;
   }
   if (t.dataset.map) { openMap(+t.dataset.map); return; }

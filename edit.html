@@ -127,6 +127,7 @@ select.input { padding-right: 8px; }
 .pano:focus-visible { outline: 3px solid var(--focus); outline-offset: -3px; }
 .strip { position: absolute; top: 0; bottom: 0; left: 0; width: 300%; will-change: transform; }
 .strip svg { width: 100%; height: 100%; display: block; }
+.pano-img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; object-position: center 45%; display: block; user-select: none; -webkit-user-drag: none; }
 .placing .pano { cursor: crosshair; }
 .hs { position: absolute; transform: translate(-50%, -50%); display: inline-flex; align-items: center; gap: 6px; height: 36px; padding: 0 12px 0 6px; border-radius: 999px; border: 0; background: rgba(255,255,255,.96); color: var(--foreground); font-size: 13px; font-weight: 600; box-shadow: 0 2px 8px rgba(0,0,0,.25); cursor: pointer; white-space: nowrap; }
 .hs .hs-ico { width: 24px; height: 24px; border-radius: 99px; background: var(--foreground); color: #fff; display: grid; place-items: center; }
@@ -349,17 +350,17 @@ const qs = new URLSearchParams(location.search);
 const S = {
   name: qs.get('name') || '가평 휴밸리',
   vis: 'private',
+  // 예시: 가평 휴밸리(숙박) 102호 객실 + 실내 수영장. img = assets/pano/{img}.jpg (360 equirectangular)
   maps: [
-    { id: 1, label: '입구 구역', route: { from: 1, to: 4 }, zones: [{ id: 90, name: '주차장', pts: [{ x: 6, y: 52 }, { x: 30, y: 52 }, { x: 30, y: 86 }, { x: 6, y: 86 }] }] },
-    { id: 2, label: '캠핑장', route: { from: null, to: null } },
+    { id: 1, label: '102호 객실', route: { from: 1, to: 3 }, zones: [{ id: 90, name: '현관', pts: [{ x: 6, y: 50 }, { x: 28, y: 50 }, { x: 28, y: 86 }, { x: 6, y: 86 }] }] },
+    { id: 2, label: '실내 수영장', route: { from: null, to: null } },
   ],
   photos: [
-    { id: 1, map: 1, name: '입구', file: 'IMG_20260722_113628_00_137.jpg', pin: { x: 18, y: 66 }, start: 40, c: [{ id: 1, type: 'move', target: 2, x: 47, y: 56 }, { id: 2, type: 'text', title: '주차 안내', body: '주차장은 입구 왼쪽에 있어요.', x: 30, y: 44 }] },
-    { id: 2, map: 1, name: '초입부', file: 'IMG_20260722_113715_00_138.jpg', pin: { x: 36, y: 48 }, start: 50, c: [{ id: 3, type: 'move', target: 1, x: 18, y: 58 }] },
-    { id: 3, map: 1, name: '카페 앞', file: 'IMG_20260722_113732_00_139.jpg', pin: { x: 58, y: 34 }, start: 50, c: [] },
-    { id: 4, map: 1, name: '카페 내부', file: 'IMG_20260722_113812_00_140.jpg', pin: null, start: 50, c: [] },
-    { id: 5, map: 2, name: '바베큐장', file: 'IMG_20260915_145130_00_268.jpg', pin: { x: 30, y: 60 }, start: 50, c: [] },
-    { id: 6, map: 2, name: '캠핑 사이트', file: 'IMG_20260915_162850_00_671.jpg', pin: { x: 66, y: 38 }, start: 50, c: [] },
+    { id: 1, map: 1, name: '객실 입구', img: 'entrance', file: 'IMG_20260722_113628_00_137.jpg', pin: { x: 16, y: 68 }, start: 150, c: [{ id: 1, type: 'move', target: 2, x: 150, y: 64 }, { id: 2, type: 'text', title: '체크인 안내', body: '도어락 비밀번호는 예약 문자로 보내드려요.', x: 92, y: 46 }] },
+    { id: 2, map: 1, name: '거실', img: 'living', file: 'IMG_20260722_113715_00_138.jpg', pin: { x: 38, y: 50 }, start: 150, c: [{ id: 3, type: 'move', target: 1, x: 40, y: 58 }] },
+    { id: 3, map: 1, name: '침실', img: 'bedroom', file: 'IMG_20260722_113732_00_139.jpg', pin: { x: 62, y: 34 }, start: 150, c: [] },
+    { id: 4, map: 1, name: '욕실', img: 'bathroom', file: 'IMG_20260722_113812_00_140.jpg', pin: null, start: 150, c: [] },
+    { id: 5, map: 2, name: '실내 수영장', img: 'pool', file: 'IMG_20260915_145130_00_268.jpg', pin: { x: 50, y: 50 }, start: 205, c: [] },
   ],
   cover: 1, mapId: 1, cur: 1, sel: null, filter: 'all', q: '', pan: .3, placing: null, saving: false,
 };
@@ -370,6 +371,7 @@ const curMap = () => S.maps.find(m => m.id === S.mapId);
 const photosOf = mid => S.photos.filter(p => p.map === mid);
 const idx = p => photosOf(p.map).indexOf(p) + 1;
 const moves = p => p.c.filter(c => c.type === 'move');
+const thumbBg = p => p.img ? `background:#ddd url(assets/pano/${p.img}-s.jpg) center/cover` : `background:linear-gradient(${SKY[(p.id - 1) % SKY.length][0]} 50%, ${SKY[(p.id - 1) % SKY.length][1]} 50%)`;
 const needPin = p => !p.pin;
 const needMove = p => photosOf(p.map).length > 1 && !moves(p).length;
 const todoOf = p => [needPin(p) && '위치 없음', needMove(p) && '이동 버튼 없음'].filter(Boolean);
@@ -463,7 +465,7 @@ function renderSide() {
         const t = todoOf(p);
         return `<li class="row" ${p.id === S.cur ? 'aria-current="true"' : ''}>
           <button class="row-go" type="button" data-go="${p.id}" data-k="go${p.id}">
-            <span class="th" style="background:linear-gradient(${SKY[(p.id - 1) % SKY.length][0]} 50%, ${SKY[(p.id - 1) % SKY.length][1]} 50%)"><b>${idx(p)}</b></span>
+            <span class="th" style="${thumbBg(p)}"><b>${idx(p)}</b></span>
             <span class="row-main"><span class="row-name">${esc(p.name)}</span>
               <span class="row-meta">${t.length ? t.map(x => `<span class="badge warn">${x}</span>`).join('') : `<span class="badge ok">${ic('check', 12)}완료</span>`}
               ${p.c.length ? `<span class="badge">콘텐츠 ${p.c.length}</span>` : ''}${p.id === S.cover ? '<span class="badge solid">대표</span>' : ''}</span></span>
@@ -506,7 +508,7 @@ function renderStage() {
   }).join('');
   keepFocus(() => { $('#stage').className = 'stage' + (S.placing ? ' placing' : ''); $('#stage').innerHTML = `
     <div class="pano" id="viewer" tabindex="0" role="application" aria-roledescription="360 사진 보기" aria-label="${esc(p.name)} 360 사진. 좌우 방향키로 둘러볼 수 있어요.${S.placing ? ' Enter를 누르면 가운데에 놓여요.' : ''}" data-k="viewer">
-      <div class="strip" id="strip" style="transform:translateX(${-S.pan * 66.6667}%)">${panoSvg(p)}
+      <div class="strip" id="strip" style="transform:translateX(${-S.pan * 66.6667}%)">${p.img ? `<img class="pano-img" src="assets/pano/${p.img}.jpg" alt="" draggable="false">` : panoSvg(p)}
         <span class="start-mark" style="left:${p.start / 3}%"><span>처음 보이는 방향</span></span>
         ${hs}</div>
     </div>
@@ -725,7 +727,7 @@ function renderMapEditor() {
     ? (M.draft.length ? `꼭짓점 ${M.draft.length}개. 계속 눌러 모양을 만들고, 첫 점을 누르거나 <b>구역 완성</b>을 누르면 끝나요.` : '구역의 꼭짓점을 차례로 눌러주세요. 키보드는 방향키로 옮기고 Enter로 찍어요.')
     : selP ? `<span class="sel-guide">‘${esc(selP.name)}’</span> 위치를 지도에서 눌러주세요. 키보드는 방향키로 옮기고 Enter로 찍어요.` : '오른쪽 목록에서 ‘찍기’를 누르고 지도에서 위치를 골라주세요.';
   const pinRow = p => `<li class="row" ${p.id === M.sel ? 'aria-current="true"' : ''}>
-    <span class="row-go" style="cursor:default"><span class="th" style="background:linear-gradient(${SKY[(p.id - 1) % SKY.length][0]} 50%, ${SKY[(p.id - 1) % SKY.length][1]} 50%)"><b>${idx(p)}</b></span>
+    <span class="row-go" style="cursor:default"><span class="th" style="${thumbBg(p)}"><b>${idx(p)}</b></span>
       <span class="row-main"><span class="row-name">${esc(p.name)}</span>${M.pins[p.id] ? `<span class="t-xs" style="color:var(--accent);font-weight:600">위치 찍힘</span>` : `<span class="t-xs" style="color:var(--warn);font-weight:600">위치 없음</span>`}</span></span>
     <button class="btn btn-outline btn-sm" type="button" data-pick="${p.id}" data-k="pick${p.id}">${p.id === M.sel ? '고르는 중' : M.pins[p.id] ? '바꾸기' : '찍기'}</button>
     ${M.pins[p.id] ? `<button class="btn btn-ghost btn-sm icon-btn" type="button" data-unpin="${p.id}" data-k="unpin${p.id}" aria-label="${esc(p.name)} 위치 지우기" title="위치 지우기">${ic('x')}</button>` : ''}

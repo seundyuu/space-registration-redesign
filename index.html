@@ -432,7 +432,9 @@ const STEPS = [
   { name: '확인하기', hint: '빠진 게 없는지 보고 만들기' },
 ];
 const SKY = [['#9cc8f0','#d9c8a6'],['#a9d2f2','#7f9a6a'],['#c3d9ef','#a07d5e'],['#8fbde8','#5f7f58'],['#b8d4ee','#8e8a80'],['#9fc3e6','#6d8f73']];
-const NAMES = ['입구', '초입부', '카페 앞', '카페 내부', '테라스', '바베큐장', '캠핑사이트', '펜션 마당'];
+// 예시 사진 = 가평 휴밸리(숙박) 객실 360 사진
+const NAMES = ['객실 입구', '거실', '침실', '욕실', '실내 수영장'];
+const DEMO_IMG = ['entrance', 'living', 'bedroom', 'bathroom', 'pool'];
 
 // maps: 방문자 화면의 미니맵 한 장 = 지도 하나. 층·구역 구분 없이 이름은 관리자가 붙인다
 const state = { step: 0, name: '', scale: null, maps: [], active: 0, sel: null, cursor: { x: 50, y: 50 }, vis: 'private', touched: false, nameTouched: false };
@@ -707,7 +709,7 @@ function mapBody(m) {
 const PLAN_SVG = `<svg viewBox="0 0 400 250" aria-hidden="true" fill="none" stroke="#9AAACB" stroke-width="3">
   <rect x="20" y="20" width="360" height="210" fill="#fff"/><path d="M160 20v120M20 140h100M260 100h120M260 100v130"/>
   <g fill="#737373" stroke="none" font-size="13" font-family="Pretendard Variable, sans-serif" text-anchor="middle">
-    <text x="85" y="85">홀</text><text x="320" y="62">카페</text><text x="320" y="170">테라스</text><text x="200" y="195">복도</text></g></svg>`;
+    <text x="85" y="85">현관</text><text x="320" y="62">침실</text><text x="320" y="170">욕실</text><text x="200" y="195">거실</text></g></svg>`;
 // 네이버 지도 API 화면을 흉내 낸 시안용 지도(실서비스에선 Maps JavaScript API로 대체)
 const NAVER_SVG = `<svg viewBox="0 0 400 250" aria-hidden="true">
   <rect width="400" height="250" fill="#f1efe9"/>
@@ -914,7 +916,7 @@ document.addEventListener('click', e => {
 
   if (t.id === 'addImg') { $('#imgFile').click(); return; }
   if (t.id === 'demoImg') {
-    for (let k = 0; k < 3; k++) { const n = m.images.length; m.images.push({ id: uid++, name: NAMES[n % NAMES.length] + (n >= NAMES.length ? ' ' + (Math.floor(n / NAMES.length) + 1) : ''), pin: null, c: SKY[n % SKY.length], gps: n % 3 === 2 ? null : GPS[n % GPS.length], ll: n % 3 === 2 ? null : { lat: 37.8335 - GPS[n % GPS.length][1] * 0.00004, lng: 127.5085 + GPS[n % GPS.length][0] * 0.00006 } }); }
+    for (let k = 0; k < 3; k++) { const n = m.images.length; m.images.push({ id: uid++, name: NAMES[n % NAMES.length] + (n >= NAMES.length ? ' ' + (Math.floor(n / NAMES.length) + 1) : ''), pin: null, c: SKY[n % SKY.length], url: `assets/pano/${DEMO_IMG[n % DEMO_IMG.length]}-s.jpg`, gps: n % 3 === 2 ? null : GPS[n % GPS.length], ll: n % 3 === 2 ? null : { lat: 37.8335 - GPS[n % GPS.length][1] * 0.00004, lng: 127.5085 + GPS[n % GPS.length][0] * 0.00006 } }); }
     const k = autoPin(m); render();
     toast(k ? `예시 사진 3장을 넣었어요. ${k}장은 촬영 위치로 찍혔어요` : '예시 사진 3장을 넣었어요'); $('#addImg').focus(); return;
   }

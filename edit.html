@@ -136,13 +136,21 @@ select.input { padding-right: 8px; }
 .ov-layer > .cross { pointer-events: none; }
 .hs-wrap, .start-hs { width: auto; height: auto; }
 .hs-wrap { z-index: 2; }
+.hs-move { position: relative; display: block; width: 0; height: 0; padding: 0; border: 0; background: none; cursor: pointer; }
+.hs-arrow { position: absolute; left: -26px; top: -26px; width: 52px; height: 52px; border-radius: 999px; display: grid; place-items: center; color: #fff; background: rgba(10,10,10,.45); border: 3px solid rgba(255,255,255,.95); box-shadow: 0 2px 10px rgba(0,0,0,.35); transform: perspective(220px) rotateX(36deg); transition: background .15s, transform .15s; }
+.hs-move:hover .hs-arrow, .hs-move:focus-visible .hs-arrow { background: rgba(10,10,10,.7); transform: perspective(220px) rotateX(30deg) scale(1.08); }
+.hs-move[aria-pressed="true"] .hs-arrow { background: var(--accent); border-color: #fff; }
+.hs-move:focus-visible { outline: none; }
+.hs-move:focus-visible .hs-arrow { box-shadow: 0 0 0 3px var(--focus), 0 2px 10px rgba(0,0,0,.35); }
+.hs-tip { position: absolute; left: 50%; top: 32px; transform: translateX(-50%); white-space: nowrap; background: rgba(10,10,10,.82); color: #fff; font-size: 12px; font-weight: 600; padding: 3px 8px; border-radius: 6px; opacity: 0; pointer-events: none; transition: opacity .15s; }
+.hs-move:hover .hs-tip, .hs-move:focus-visible .hs-tip, .hs-move[aria-pressed="true"] .hs-tip { opacity: 1; }
 .start-hs { width: 0 !important; height: 0 !important; pointer-events: none; z-index: 1; }
 /* 기준선: 화면 가운데에 고정된 수직·수평 점선 — 돌려서 이 십자에 맞춘 방향이 '지금 방향을 첫 화면으로'의 기준 */
 .ov-layer > .guide { position: absolute; pointer-events: none; opacity: .8; }
 .guide-v { left: calc(50% - 1px); top: 0; bottom: 0; width: 2px; background: repeating-linear-gradient(#fff 0 6px, transparent 6px 12px); }
 .guide-h { top: calc(50% - 1px); left: 0; right: 0; height: 2px; background: repeating-linear-gradient(90deg, #fff 0 6px, transparent 6px 12px); }
 .start-hs .sl-dot { position: absolute; left: -6px; top: -6px; width: 12px; height: 12px; border-radius: 99px; background: #fff; border: 3px solid var(--accent); box-sizing: border-box; }
-.start-hs span { position: absolute; left: 10px; top: -26px; background: #fff; color: var(--foreground); font-size: 12px; font-weight: 600; padding: 2px 8px; border-radius: 6px; white-space: nowrap; pointer-events: none; box-shadow: 0 1px 3px rgba(0,0,0,.25); }
+.start-hs span { position: absolute; left: 12px; top: 0; transform: translateY(-50%); background: #fff; color: var(--foreground); font-size: 12px; font-weight: 600; padding: 2px 8px; border-radius: 6px; white-space: nowrap; pointer-events: none; box-shadow: 0 1px 3px rgba(0,0,0,.25); }
 .placing .pano, .placing .pnlm-dragfix, .placing .pnlm-ui { cursor: crosshair !important; }
 .pano:active { cursor: grabbing; }
 .pano:focus-visible { outline: 3px solid var(--focus); outline-offset: -3px; }
@@ -546,8 +554,13 @@ function renderSideInner() {
 // 360 보기 = Pannellum(equirectangular). 콘텐츠 위치는 사진 안의 방향(yaw·pitch, 도)으로 저장한다
 let V = null, vFor = null, hsIds = [];
 const normYaw = y => ((y + 540) % 360) - 180;
+// 이동 버튼은 스트리트뷰처럼 수평선 아래 바닥에 화살표만. 이름은 마우스를 올리거나 고르면 보인다
+const MOVE_PITCH = -28;
+const ARROW = '<svg viewBox="0 0 24 24" width="28" height="28" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="m5 15 7-7 7 7"/></svg>';
 function hsHtml(c) {
   const t = TYPES[c.type];
+  if (c.type === 'move') return `<button class="hs-move" type="button" data-hs="${c.id}" aria-pressed="${S.sel === c.id}" aria-label="${esc(label(c))}, ${t.name}">
+    <span class="hs-arrow">${ARROW}</span><span class="hs-tip">${esc(label(c))}</span></button>`;
   return `<button class="hs${c.type === 'area' || c.type === 'areaMedia' ? ' area' : ''}" type="button" data-hs="${c.id}" aria-pressed="${S.sel === c.id}" aria-label="${esc(label(c))}, ${t.name}">
     <span class="hs-ico">${ic(t.icon)}</span>${esc(label(c))}</button>`;
 }
@@ -558,9 +571,10 @@ function syncHotspots() {
   const add = (id, o) => { V.addHotSpot({ id, ...o }); hsIds.push(id); };
   // 처음 보이는 방향은 사진 속 그 자리에 작은 표시로 (기준선은 화면 가운데 고정 — renderStage의 .guide)
   add('start', { pitch: 0, yaw: p.start, cssClass: 'start-hs', createTooltipFunc: d => { d.innerHTML = '<i class="sl-dot"></i><span>처음 보이는 방향</span>'; } });
-  p.c.forEach(c => add('c' + c.id, { pitch: c.pitch, yaw: c.yaw, cssClass: 'hs-wrap', createTooltipFunc: d => {
+  p.c.forEach(c => add('c' + c.id, { pitch: c.type === 'move' ? MOVE_PITCH : c.pitch, yaw: c.yaw, cssClass: 'hs-wrap', createTooltipFunc: d => {
     d.innerHTML = hsHtml(c);
     const b = d.querySelector('button');
+    if (c.type === 'move') d.classList.add('is-move');
     b.onclick = e => { e.stopPropagation(); S.sel = c.id; syncHotspots(); renderPanel(); };
     b.ondblclick = e => { e.stopPropagation(); if (c.type === 'move' && c.target) goPhoto(c.target); };
     b.onpointerdown = e => e.stopPropagation();

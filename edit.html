@@ -137,10 +137,12 @@ select.input { padding-right: 8px; }
 .hs-wrap, .start-hs { width: auto; height: auto; }
 .hs-wrap { z-index: 2; }
 .start-hs { width: 0 !important; height: 0 !important; pointer-events: none; z-index: 1; }
-.start-hs .sl-v, .start-hs .sl-h { position: absolute; display: block; pointer-events: none; opacity: .85; }
-.start-hs .sl-v { left: -1px; top: -3000px; width: 2px; height: 6000px; background: repeating-linear-gradient(#fff 0 6px, transparent 6px 12px); }
-.start-hs .sl-h { top: -1px; left: -3000px; height: 2px; width: 6000px; background: repeating-linear-gradient(90deg, #fff 0 6px, transparent 6px 12px); }
-.start-hs span { position: absolute; left: 8px; top: -30px; background: #fff; color: var(--foreground); font-size: 12px; font-weight: 600; padding: 2px 8px; border-radius: 6px; white-space: nowrap; pointer-events: none; box-shadow: 0 1px 3px rgba(0,0,0,.25); }
+/* 기준선: 화면 가운데에 고정된 수직·수평 점선 — 돌려서 이 십자에 맞춘 방향이 '지금 방향을 첫 화면으로'의 기준 */
+.ov-layer > .guide { position: absolute; pointer-events: none; opacity: .8; }
+.guide-v { left: calc(50% - 1px); top: 0; bottom: 0; width: 2px; background: repeating-linear-gradient(#fff 0 6px, transparent 6px 12px); }
+.guide-h { top: calc(50% - 1px); left: 0; right: 0; height: 2px; background: repeating-linear-gradient(90deg, #fff 0 6px, transparent 6px 12px); }
+.start-hs .sl-dot { position: absolute; left: -6px; top: -6px; width: 12px; height: 12px; border-radius: 99px; background: #fff; border: 3px solid var(--accent); box-sizing: border-box; }
+.start-hs span { position: absolute; left: 10px; top: -26px; background: #fff; color: var(--foreground); font-size: 12px; font-weight: 600; padding: 2px 8px; border-radius: 6px; white-space: nowrap; pointer-events: none; box-shadow: 0 1px 3px rgba(0,0,0,.25); }
 .placing .pano, .placing .pnlm-dragfix, .placing .pnlm-ui { cursor: crosshair !important; }
 .pano:active { cursor: grabbing; }
 .pano:focus-visible { outline: 3px solid var(--focus); outline-offset: -3px; }
@@ -249,6 +251,8 @@ svg.zones { position: absolute; inset: 0; width: 100%; height: 100%; pointer-eve
 .zname:hover { border-color: var(--border); }
 .zname:focus-visible { outline: none; border-color: var(--semantic-border); box-shadow: 0 0 0 3px rgba(161,161,161,.5); }
 .sel-guide { color: var(--accent); font-weight: 600; }
+.lap-note { margin: 0; display: flex; gap: 6px; align-items: flex-start; padding: 8px 10px; border-radius: var(--radius-md); background: var(--warn-bg); color: #7c2d12; border: 1px solid #fed7aa; }
+.lap-note svg { flex: none; margin-top: 1px; color: var(--warn); }
 
 /* shadcn Sonner (+되돌리기 액션) */
 .toast { position: fixed; right: 24px; bottom: 24px; min-width: 300px; max-width: calc(100% - 32px); background: var(--background); border: 1px solid var(--border); box-shadow: 0 4px 12px rgba(0,0,0,.1); padding: 10px 10px 10px 16px; border-radius: var(--radius-lg); font-weight: 500; display: flex; align-items: center; gap: 12px; opacity: 0; transform: translateY(8px); transition: opacity .2s, transform .2s; pointer-events: none; z-index: 60; }
@@ -368,16 +372,17 @@ const S = {
   name: qs.get('name') || '가평 휴밸리',
   vis: 'private',
   // 예시: 가평 휴밸리(숙박) 102호 객실 + 실내 수영장. img = assets/pano/{img}.jpg (360 equirectangular)
+  // pin은 원본 사진(~/Downloads/휴밸리)의 GPS를 지도 프레임 %로 바꾼 값. 실내 3장은 GPS가 같은 점으로 찍혀 겹친다
   maps: [
-    { id: 1, label: '102호 객실', center: { lat: 37.8335, lng: 127.5085 }, route: { from: 1, to: 3 }, zones: [{ id: 90, name: '현관', pts: [{ x: 6, y: 50 }, { x: 28, y: 50 }, { x: 28, y: 86 }, { x: 6, y: 86 }] }] },
-    { id: 2, label: '실내 수영장', center: { lat: 37.8337, lng: 127.5089 }, route: { from: null, to: null } },
+    { id: 1, label: '102호 객실', center: { lat: 37.83582, lng: 126.735417 }, route: { from: 1, to: 3 }, zones: [{ id: 90, name: '현관', pts: [{ x: 44, y: 54 }, { x: 60, y: 54 }, { x: 60, y: 70 }, { x: 44, y: 70 }] }] },
+    { id: 2, label: '실내 수영장', center: { lat: 37.83582, lng: 126.735417 }, route: { from: null, to: null } },
   ],
   photos: [
-    { id: 1, map: 1, name: '객실 입구', img: 'entrance', file: 'IMG_20260722_113628_00_137.jpg', pin: { x: 16, y: 68 }, start: 0, c: [{ id: 1, type: 'move', target: 2, yaw: 0, pitch: -8 }, { id: 2, type: 'text', title: '체크인 안내', body: '도어락 비밀번호는 예약 문자로 보내드려요.', yaw: -70, pitch: 4 }] },
-    { id: 2, map: 1, name: '거실', img: 'living', file: 'IMG_20260722_113715_00_138.jpg', pin: { x: 38, y: 50 }, start: 0, c: [{ id: 3, type: 'move', target: 1, yaw: -133, pitch: -6 }] },
-    { id: 3, map: 1, name: '침실', img: 'bedroom', file: 'IMG_20260722_113732_00_139.jpg', pin: { x: 62, y: 34 }, start: 0, c: [] },
-    { id: 4, map: 1, name: '욕실', img: 'bathroom', file: 'IMG_20260722_113812_00_140.jpg', pin: null, start: 0, c: [] },
-    { id: 5, map: 2, name: '실내 수영장', img: 'pool', file: 'IMG_20260915_145130_00_268.jpg', pin: { x: 50, y: 50 }, start: 72, c: [] },
+    { id: 1, map: 1, name: '객실 입구', img: 'entrance', file: 'IMG_20260702_160034_00_943.jpg', gps: { lat: 37.835722, lng: 126.735445 }, pin: { x: 51.6, y: 61.5 }, start: 0, c: [{ id: 1, type: 'move', target: 2, yaw: 0, pitch: -8 }, { id: 2, type: 'text', title: '체크인 안내', body: '도어락 비밀번호는 예약 문자로 보내드려요.', yaw: -70, pitch: 4 }] },
+    { id: 2, map: 1, name: '거실', img: 'living', file: 'IMG_20260702_155809_00_939.jpg', gps: { lat: 37.835917, lng: 126.735388 }, pin: { x: 48.3, y: 38.7 }, start: 0, c: [{ id: 3, type: 'move', target: 1, yaw: -133, pitch: -6 }] },
+    { id: 3, map: 1, name: '침실', img: 'bedroom', file: 'IMG_20260702_155854_00_941.jpg', gps: { lat: 37.835917, lng: 126.735388 }, pin: { x: 48.3, y: 38.7 }, start: 0, c: [] },
+    { id: 4, map: 1, name: '욕실', img: 'bathroom', file: 'IMG_20260702_155832_00_940.jpg', gps: { lat: 37.835917, lng: 126.735388 }, pin: { x: 48.3, y: 38.7 }, start: 0, c: [] },
+    { id: 5, map: 2, name: '실내 수영장', img: 'pool', file: 'IMG_20260702_155920_00_942.jpg', gps: { lat: 37.835945, lng: 126.735362 }, pin: { x: 46.8, y: 35.3 }, start: 72, c: [] },
   ],
   cover: 1, mapId: 1, cur: 1, sel: null, filter: 'all', q: '', placing: null, saving: false,
 };
@@ -391,13 +396,15 @@ const moves = p => p.c.filter(c => c.type === 'move');
 const thumbBg = p => p.img ? `background:#ddd url(assets/pano/${p.img}-s.jpg) center/cover` : `background:linear-gradient(${SKY[(p.id - 1) % SKY.length][0]} 50%, ${SKY[(p.id - 1) % SKY.length][1]} 50%)`;
 const needPin = p => !p.pin;
 const needMove = p => photosOf(p.map).length > 1 && !moves(p).length;
-const todoOf = p => [needPin(p) && '위치 없음', needMove(p) && '이동 버튼 없음'].filter(Boolean);
+// 실내에선 GPS가 거의 같은 점으로 찍힌다 → 다른 사진과 겹친 위치도 할 일로 알려준다
+const overlapOf = (p, pins = null) => { const at = o => pins ? pins[o.id] : o.pin; const a = at(p); return !!a && photosOf(p.map).some(o => o !== p && at(o) && Math.hypot(at(o).x - a.x, at(o).y - a.y) < 2); };
+const todoOf = p => [needPin(p) && '위치 없음', overlapOf(p) && '위치 겹침', needMove(p) && '이동 버튼 없음'].filter(Boolean);
 // 받침에 맞춰 조사 고르기: j('입구','으로','로') → '입구로'
 const j = (w, a, b) => { const k = w.replace(/[’'"\s)]+$/, ''); const c = k.charCodeAt(k.length - 1) - 0xac00; if (c < 0 || c > 11171) return w + a; const t = c % 28; return w + (t && !(a === '으로' && t === 8) ? a : b); };
 const label = c => c.type === 'move' ? (P(c.target) ? `${j(P(c.target).name, '으로', '로')} 이동` : '이동할 사진 고르기') : (c.title || TYPES[c.type].name);
 
 /* ── 네이버 지도: 등록 화면과 같은 Client ID(서비스 URL: seundyuu.github.io, localhost:5173) ──
-   편집용 지도는 끌거나 확대하지 않는 고정 프레임(640×400, 줌 18)으로 띄우고, 칸 크기에 맞춰 축소한다.
+   편집용 지도는 끌거나 확대하지 않는 고정 프레임(640×400, 줌 19 ≈ 151×94m)으로 띄우고, 칸 크기에 맞춰 축소한다.
    그래서 핀·구역의 %좌표가 미니맵과 지도 편집 창에서 같은 자리를 가리킨다. 실패하면 예시 평면도로 대신 보여준다 */
 const NAVER_KEY = '1xdhtvv4d4';
 const nv = { status: 'none' };
@@ -421,7 +428,7 @@ function mountNmap(slotId, key, map) {
   let m = nmaps[key];
   if (!m) {
     const el = document.createElement('div'); el.className = 'nmap'; el.style.width = NW + 'px'; el.style.height = NH + 'px';
-    m = nmaps[key] = { el, map: new naver.maps.Map(el, { center: new naver.maps.LatLng(map.center.lat, map.center.lng), zoom: 18,
+    m = nmaps[key] = { el, map: new naver.maps.Map(el, { center: new naver.maps.LatLng(map.center.lat, map.center.lng), zoom: 19,
       draggable: false, pinchZoom: false, scrollWheel: false, keyboardShortcuts: false, disableDoubleClickZoom: true, disableKineticPan: true,
       mapDataControl: false, scaleControl: false, zoomControl: false }) };
   }
@@ -479,7 +486,7 @@ function renderSide() { renderSideInner(); mountNmap('miniSlot', 'mini', curMap(
 function renderSideInner() {
   const map = curMap(), list = photosOf(map.id);
   const todoP = list.filter(p => todoOf(p).length);
-  const noPin = todoP.filter(needPin).length, noMove = todoP.filter(needMove).length;
+  const noPin = todoP.filter(needPin).length, noMove = todoP.filter(needMove).length, lap = todoP.filter(p => overlapOf(p)).length;
   let shown = S.filter === 'todo' ? list.filter(p => todoOf(p).length) : list;
   if (S.q.trim()) shown = shown.filter(p => (p.name + p.file).toLowerCase().includes(S.q.trim().toLowerCase()));
   const tabs = S.maps.map(m => `<button class="tab" role="tab" type="button" data-map="${m.id}" data-k="map${m.id}" aria-selected="${m.id === map.id}" tabindex="${m.id === map.id ? 0 : -1}">${esc(m.label)}<span class="cnt">${photosOf(m.id).length}</span></button>`).join('');
@@ -507,7 +514,7 @@ function renderSideInner() {
       ${todoP.length ? `<div class="todo">
         <span class="todo-ico">${ic('alert', 18)}</span>
         <p class="t-sm-sb">할 일이 남은 사진 ${todoP.length}장</p>
-        <p class="t-xs" style="color:#7c2d12">${[noPin && `위치 없음 ${noPin}장`, noMove && `이동 버튼 없음 ${noMove}장`].filter(Boolean).join(' · ')}</p>
+        <p class="t-xs" style="color:#7c2d12">${[noPin && `위치 없음 ${noPin}장`, lap && `위치 겹침 ${lap}장`, noMove && `이동 버튼 없음 ${noMove}장`].filter(Boolean).join(' · ')}</p>
         <button class="btn btn-outline btn-sm" type="button" id="todoBtn" data-k="todo" aria-pressed="${S.filter === 'todo'}">${S.filter === 'todo' ? '전체 보기' : '할 일만 보기'}</button>
       </div>` : ''}
       <div class="sec-h"><h2 id="photosH">360 사진 <span class="muted" style="font-weight:500">${list.length}</span></h2>
@@ -549,8 +556,8 @@ function syncHotspots() {
   hsIds.forEach(id => { try { V.removeHotSpot(id); } catch (e) {} });
   hsIds = [];
   const add = (id, o) => { V.addHotSpot({ id, ...o }); hsIds.push(id); };
-  // 처음 보이는 방향: 그 방향(yaw)과 수평선(pitch 0)이 만나는 점에 십자 기준선을 그린다 — 화면을 돌려도 같이 움직인다
-  add('start', { pitch: 0, yaw: p.start, cssClass: 'start-hs', createTooltipFunc: d => { d.innerHTML = '<i class="sl-v"></i><i class="sl-h"></i><span>처음 보이는 방향</span>'; } });
+  // 처음 보이는 방향은 사진 속 그 자리에 작은 표시로 (기준선은 화면 가운데 고정 — renderStage의 .guide)
+  add('start', { pitch: 0, yaw: p.start, cssClass: 'start-hs', createTooltipFunc: d => { d.innerHTML = '<i class="sl-dot"></i><span>처음 보이는 방향</span>'; } });
   p.c.forEach(c => add('c' + c.id, { pitch: c.pitch, yaw: c.yaw, cssClass: 'hs-wrap', createTooltipFunc: d => {
     d.innerHTML = hsHtml(c);
     const b = d.querySelector('button');
@@ -581,6 +588,7 @@ function renderStage() {
   $('#stage').className = 'stage' + (S.placing ? ' placing' : '');
   $('#viewer').setAttribute('aria-label', `${p.name} 360 사진. 방향키로 둘러보고 +, -로 확대해요.${S.placing ? ' Enter를 누르면 가운데에 놓여요.' : ''}`);
   keepFocus(() => { $('#ovl').innerHTML = `
+    <i class="guide guide-v" aria-hidden="true"></i><i class="guide guide-h" aria-hidden="true"></i>
     ${S.placing ? `<span class="cross" aria-hidden="true"></span>
       <div class="ov place-bar" role="status"><span>${esc(j(TYPES[typeof S.placing === 'number' ? S.placingType : S.placing].name, '을', '를'))} 놓을 자리를 눌러주세요</span><button class="btn btn-outline btn-sm" type="button" id="cancelPlace" data-k="cancelPlace">취소</button></div>` : ''}
     <div class="ov ov-info">
@@ -792,7 +800,7 @@ function renderMapEditor() {
     : selP ? `<span class="sel-guide">‘${esc(selP.name)}’</span> 위치를 지도에서 눌러주세요. 키보드는 방향키로 옮기고 Enter로 찍어요.` : '오른쪽 목록에서 ‘찍기’를 누르고 지도에서 위치를 골라주세요.';
   const pinRow = p => `<li class="row" ${p.id === M.sel ? 'aria-current="true"' : ''}>
     <span class="row-go" style="cursor:default"><span class="th" style="${thumbBg(p)}"><b>${idx(p)}</b></span>
-      <span class="row-main"><span class="row-name">${esc(p.name)}</span>${M.pins[p.id] ? `<span class="t-xs" style="color:var(--accent);font-weight:600">위치 찍힘</span>` : `<span class="t-xs" style="color:var(--warn);font-weight:600">위치 없음</span>`}</span></span>
+      <span class="row-main"><span class="row-name">${esc(p.name)}</span>${M.pins[p.id] ? (overlapOf(p, M.pins) ? `<span class="t-xs" style="color:var(--warn);font-weight:600">위치 겹침</span>` : `<span class="t-xs" style="color:var(--accent);font-weight:600">위치 찍힘</span>`) : `<span class="t-xs" style="color:var(--warn);font-weight:600">위치 없음</span>`}</span></span>
     <button class="btn btn-outline btn-sm" type="button" data-pick="${p.id}" data-k="pick${p.id}">${p.id === M.sel ? '고르는 중' : M.pins[p.id] ? '바꾸기' : '찍기'}</button>
     ${M.pins[p.id] ? `<button class="btn btn-ghost btn-sm icon-btn" type="button" data-unpin="${p.id}" data-k="unpin${p.id}" aria-label="${esc(p.name)} 위치 지우기" title="위치 지우기">${ic('x')}</button>` : ''}
   </li>`;
@@ -815,6 +823,7 @@ function renderMapEditor() {
             <button class="btn btn-primary btn-sm" type="button" id="zDone" data-k="zDone" ${M.draft.length < 3 ? 'disabled' : ''}>구역 완성</button>` : ''}
         </div>
         <p class="t-sm" style="margin:0;min-height:20px" aria-live="polite">${guide}</p>
+        ${(() => { const lap = list.filter(p => overlapOf(p, M.pins)); return lap.length ? `<p class="lap-note t-xs">${ic('alert', 14)}<span>${lap.map(p => esc(p.name)).join('·')} ${lap.length}장이 촬영 위치(GPS) 기준으로 같은 자리에 찍혔어요. 실내에선 GPS가 정확하지 않으니 ‘바꾸기’로 실제 방 위치에 옮겨주세요.</span></p>` : ''; })()}
         <div class="plan-lg${selP || zone ? ' picking' : ''}" id="mPlan" data-k="mPlan" tabindex="0" role="application" aria-label="${esc(map.label)} 지도${zone ? ', 구역 그리기' : ''}">
           ${mapSlot('mSlot')}${zonesSvg(M.zones, zone ? M.draft : [], M.zsel)}${mapBadge()}
           ${list.filter(p => M.pins[p.id]).map(p => `<span class="pin${p.id === M.sel ? ' sel' : ''}" style="left:${M.pins[p.id].x}%;top:${M.pins[p.id].y}%"><b>${idx(p)}</b><span>${esc(p.name)}</span></span>`).join('')}

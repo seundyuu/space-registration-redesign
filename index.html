@@ -523,7 +523,7 @@ function renderTitle() {
   const t = [
     ['어떤 공간을 만들까요?', '공간의 이름과 크기를 정해주세요. 크기는 나중에 바꿀 수 있어요.'],
     needsName()
-      ? ['지도를 추가해 주세요', '층이나 구역마다 지도를 한 장씩 만들어요. 붙인 이름은 방문자에게 그대로 보여요.']
+      ? ['지도를 추가해주세요', '층이나 구역마다 지도를 한 장씩 만들어요. 붙인 이름은 방문자에게 그대로 보여요.']
       : ['지도와 360이미지를 올려주세요', '지도를 올리고 사진마다 위치를 찍으면 미니맵이 만들어져요.'],
     ['이대로 만들까요?', '만든 뒤에도 언제든 고칠 수 있어요.'],
   ][state.step];
@@ -655,7 +655,7 @@ function moreMenu(m) {
 }
 function mapBody(m) {
   if (m.map) return workspace(m);
-  if (m.source === 'upload') return `<div class="drop" data-drop="plan">${icon('map-pin', 32)}<span class="t-sm-sb">평면도나 안내도를 올려주세요</span><p class="t-xs muted">PNG·JPG, 20MB까지 · 끌어다 놓아도 돼요</p><button class="btn btn-primary" type="button" id="addMap">파일 고르기</button><button class="btn btn-ghost" type="button" id="demoPlan" style="margin-top:4px">예시 평면도로 해보기</button></div>
+  if (m.source === 'upload') return `<div class="drop" data-drop="plan">${icon('map-pin', 32)}<span class="t-sm-sb">평면도나 안내도를 올려주세요</span><p class="t-xs muted">PNG·JPG, 20MB까지 · 파일을 여기로 끌어다 놓을 수 있어요</p><button class="btn btn-primary" type="button" id="addMap">파일 고르기</button><button class="btn btn-ghost" type="button" id="demoPlan" style="margin-top:4px">예시 평면도로 해보기</button></div>
     <button class="btn btn-ghost" type="button" id="backSrc" style="margin-top:8px">다른 방식 고르기</button>`;
   // 편집 모드 '지도 추가' 모달과 같은 두 가지 방식. 네이버 지도를 먼저, 권장으로
   return `<div role="group" aria-labelledby="srcH">
@@ -664,8 +664,8 @@ function mapBody(m) {
       <button class="src-card" type="button" data-src="naver">
         <span class="src-top"><span class="src-ico">${icon('map-pin', 24)}</span><span class="badge ok">권장</span></span>
         <span class="t-base-sb">네이버 지도</span>
-        <span class="t-sm muted">360이미지에 담긴 GPS 위치로 실제 지도를 불러와요.</span>
-        <span class="src-list t-sm"><span><i class="ck" aria-hidden="true">✓</i> 사진 위치가 자동으로 찍혀요</span><span><i class="ck" aria-hidden="true">✓</i> 지도 이미지를 따로 준비하지 않아도 돼요</span><span><i class="ck" aria-hidden="true">✓</i> 캠핑장처럼 야외에 넓게 퍼진 곳에 잘 맞아요</span></span>
+        <span class="t-sm muted">360이미지에 저장된 촬영 위치로 실제 지도를 바로 불러와요.</span>
+        <span class="src-list t-sm"><span><i class="ck" aria-hidden="true">✓</i> 사진 위치가 자동으로 찍혀요</span><span><i class="ck" aria-hidden="true">✓</i> 평면도 없이 바로 시작할 수 있어요</span><span><i class="ck" aria-hidden="true">✓</i> 캠핑장처럼 야외에 넓게 퍼진 곳에 잘 맞아요</span></span>
       </button>
       <button class="src-card" type="button" data-src="upload">
         <span class="src-top"><span class="src-ico"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#0a0a0a" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="m16 12-4-4-4 4M12 16V8"/></svg></span></span>
@@ -694,8 +694,8 @@ const NAVER_SVG = `<svg viewBox="0 0 400 250" aria-hidden="true">
 function guide(m) {
   const s = m.images.find(i => i.id === state.sel), todo = m.images.length - placed(m);
   if (s) return `‘${s.name}’ 위치를 지도에서 눌러주세요. 키보드는 방향키로 옮기고 Enter로 찍어요.`;
-  if (!m.images.length) return m.source === 'naver' ? '360이미지를 올리면 GPS 위치에 맞춰 자동으로 찍혀요.' : '360이미지를 추가하고, 사진마다 지도 위 위치를 찍어주세요.';
-  if (todo) return m.source === 'naver' ? 'GPS가 없는 사진은 ‘찍기’를 누르고 지도에서 위치를 골라주세요.' : '‘찍기’를 누르고 지도에서 위치를 골라주세요.';
+  if (!m.images.length) return m.source === 'naver' ? '360이미지를 올리면 촬영 위치에 맞춰 자동으로 찍혀요.' : '360이미지를 추가하고, 사진마다 지도 위 위치를 찍어주세요.';
+  if (todo) return m.source === 'naver' ? '촬영 위치가 없는 사진은 ‘찍기’를 누르고 지도에서 위치를 골라주세요.' : '‘찍기’를 누르고 지도에서 위치를 골라주세요.';
   return '모든 사진의 위치가 찍혔어요.';
 }
 function workspace(m) {
@@ -704,7 +704,7 @@ function workspace(m) {
   const c = state.cursor;
   return `<div class="ws">
     <div class="ws-map">
-      ${m.source === 'naver' && nv.status !== 'ready' ? `<p class="nv-note t-xs" role="status">${{ loading: '네이버 지도를 불러오는 중이에요…', nokey: '지금은 예시 지도예요. 네이버 지도 Client ID를 넣으면 실제 지도로 바뀌어요.', failed: '네이버 지도 인증에 실패해 예시 지도로 보여요. Client ID와 등록한 서비스 URL을 확인해 주세요.', blocked: '이 화면에서는 네이버 지도를 불러올 수 없어 예시 지도로 보여요. 실제 지도는 GitHub Pages 주소에서 볼 수 있어요.' }[nv.status] || ''}</p>` : ''}
+      ${m.source === 'naver' && nv.status !== 'ready' ? `<p class="nv-note t-xs" role="status">${{ loading: '네이버 지도를 불러오는 중이에요…', nokey: '지금은 예시 지도예요. 네이버 지도 Client ID를 넣으면 실제 지도로 바뀌어요.', failed: '네이버 지도 인증에 실패해 예시 지도로 보여요. Client ID와 등록한 서비스 URL을 확인해주세요.', blocked: '이 화면에서는 네이버 지도를 불러올 수 없어 예시 지도로 보여요. 실제 지도는 GitHub Pages 주소에서 볼 수 있어요.' }[nv.status] || ''}</p>` : ''}
       <div class="floorplan${s ? '' : ' idle'}${isReal(m) ? ' real' : ''}" id="plan" role="application" tabindex="0" aria-describedby="wsGuide crossPos"
         aria-label="${esc(dn(m))} ${SRC[m.source]}${s ? `, ‘${esc(s.name)}’ 위치 고르는 중` : ''}">
         ${isReal(m) ? '<div class="nmap-slot" id="nmapSlot"></div>'
@@ -713,7 +713,7 @@ function workspace(m) {
         ${s ? `<div class="cross" id="cross" style="left:${isReal(m) ? 50 : c.x}%;top:${isReal(m) ? 50 : c.y}%" aria-hidden="true"></div>` : ''}
       </div>
       <p class="sr-only" id="crossPos" aria-live="polite">${s ? (isReal(m) ? '방향키로 지도를 옮겨 가운데 십자선에 맞추고 Enter로 찍어요.' : `가로 ${Math.round(c.x)}%, 세로 ${Math.round(c.y)}%`) : ''}</p>
-      <p class="map-legend t-xs muted" style="margin:8px 0 0">${m.source === 'naver' ? '<span><i style="background:var(--accent)"></i>GPS로 찍힘</span>' : ''}<span><i style="box-shadow:inset 0 0 0 2px var(--accent)"></i>직접 찍음</span><span>· 구역 그리기는 공간을 만든 뒤 편집 모드에서 할 수 있어요.</span></p>
+      <p class="map-legend t-xs muted" style="margin:8px 0 0">${m.source === 'naver' ? '<span><i style="background:var(--accent)"></i>자동으로 찍힘</span>' : ''}<span><i style="box-shadow:inset 0 0 0 2px var(--accent)"></i>직접 찍음</span><span>· 구역 그리기는 공간을 만든 뒤 편집 모드에서 할 수 있어요.</span></p>
     </div>
     <div class="ws-list" aria-labelledby="imgH">
       <div class="ws-list-head"><h3 id="imgH" class="t-base-sb">360이미지 <span class="t-sm muted" style="font-weight:400">${m.images.length}장</span></h3>
@@ -722,14 +722,14 @@ function workspace(m) {
       ${m.images.length ? `
         ${todo.length ? `<h4 class="group-h">위치를 찍어야 해요 · ${todo.length}</h4><ul class="rows">${todo.map(row).join('')}</ul>` : ''}
         ${ok.length ? `<h4 class="group-h">위치가 찍힌 사진 · ${ok.length}</h4><ul class="rows">${ok.map(row).join('')}</ul>` : ''}`
-      : `<div class="drop" data-drop="img" style="padding:24px 16px">${icon('photo-circle', 32)}<span class="t-sm-sb">아직 360이미지가 없어요</span><p class="t-xs muted" style="margin:0 0 8px">JPG·PNG 여러 장을 한 번에 고르거나 끌어다 놓아도 돼요</p><button class="btn btn-ghost" type="button" id="demoImg">예시 사진으로 해보기</button></div>`}
+      : `<div class="drop" data-drop="img" style="padding:24px 16px">${icon('photo-circle', 32)}<span class="t-sm-sb">아직 360이미지가 없어요</span><p class="t-xs muted" style="margin:0 0 8px">JPG·PNG 여러 장을 한 번에 고르거나 끌어다 놓을 수 있어요</p><button class="btn btn-ghost" type="button" id="demoImg">예시 사진으로 해보기</button></div>`}
     </div>
   </div>`;
 }
 // 사진 한 줄: 번호(지도 핀과 같은 번호) · 이름 · 상태 텍스트 · 찍기 · 삭제
 function row(img) {
   const m = cur(), n = m.images.indexOf(img) + 1, sel = state.sel === img.id;
-  const status = img.pin ? (img.auto ? '✓ GPS로 찍힘' : '✓ 직접 찍음') : m.source === 'naver' && !img.gps && !img.ll ? 'GPS 없음' : '위치 없음';
+  const status = img.pin ? (img.auto ? '✓ 자동으로 찍힘' : '✓ 직접 찍음') : m.source === 'naver' && !img.gps && !img.ll ? '촬영 위치 없음' : '위치 없음';
   return `<li class="row"${sel ? ' aria-current="true"' : ''}>
     <span class="row-th" style="background:${img.url ? `url('${img.url}') center/cover` : `linear-gradient(180deg,${img.c[0]} 0 55%,${img.c[1]} 55%)`}" aria-hidden="true"><b>${n}</b></span>
     <span class="row-main"><span class="t-sm-sb row-name">${esc(img.name)}</span><span class="t-xs ${img.pin ? 'ok-text' : 'muted'}">${status}</span></span>
@@ -778,9 +778,9 @@ function blocker() {
     const m = cur();
     if (needsName() && !named(m)) return '방문자에게 보일 지도 이름을 붙여주세요.';
     if (!m.map) return m.source === 'upload' ? '평면도나 안내도를 올려주세요.' : '지도를 어떻게 만들지 골라주세요.';
-    if (!m.images.length) return '360이미지를 추가해 주세요.';
+    if (!m.images.length) return '360이미지를 추가해주세요.';
     const u = m.images.length - placed(m);
-    if (u) return `위치를 안 찍은 사진이 ${u}장 있어요. 나중에 찍어도 돼요.`;
+    if (u) return `위치를 안 찍은 사진이 ${u}장 있어요. 공간을 만든 뒤에도 찍을 수 있어요.`;
   }
   if (state.step === 2) { const l = state.maps.filter(m => !done(m)).length; if (l) return `아직 다 못 채운 지도가 ${l}장 있어요. 나만 보기로 만든 뒤 이어서 채울 수 있어요.`; }
   return '';
@@ -843,7 +843,7 @@ document.addEventListener('click', e => {
   const m = cur();
   if (t.dataset.src === 'naver') {
     loadNaver(); m.source = 'naver'; m.map = true; const k = autoPin(m); render();
-    toast(k ? `네이버 지도를 불러왔어요. ${k}장은 GPS 위치로 찍혔어요` : '네이버 지도를 불러왔어요'); $('#addImg').focus(); return;
+    toast(k ? `네이버 지도를 불러왔어요. ${k}장은 촬영 위치로 찍혔어요` : '네이버 지도를 불러왔어요'); $('#addImg').focus(); return;
   }
   if (t.dataset.src === 'upload') { m.source = 'upload'; render(); $('#addMap').focus(); return; }
   if (t.id === 'backSrc') { m.source = null; render(); $('[data-src="naver"]').focus(); return; }
@@ -854,7 +854,7 @@ document.addEventListener('click', e => {
   if (t.id === 'demoImg') {
     for (let k = 0; k < 3; k++) { const n = m.images.length; m.images.push({ id: uid++, name: NAMES[n % NAMES.length] + (n >= NAMES.length ? ' ' + (Math.floor(n / NAMES.length) + 1) : ''), pin: null, c: SKY[n % SKY.length], gps: n % 3 === 2 ? null : GPS[n % GPS.length], ll: n % 3 === 2 ? null : { lat: 37.8335 - GPS[n % GPS.length][1] * 0.00004, lng: 127.5085 + GPS[n % GPS.length][0] * 0.00006 } }); }
     const k = autoPin(m); render();
-    toast(k ? `예시 사진 3장을 넣었어요. ${k}장은 GPS 위치로 찍혔어요` : '예시 사진 3장을 넣었어요'); $('#addImg').focus(); return;
+    toast(k ? `예시 사진 3장을 넣었어요. ${k}장은 촬영 위치로 찍혔어요` : '예시 사진 3장을 넣었어요'); $('#addImg').focus(); return;
   }
   if (t.dataset.sel) {
     const id = +t.dataset.sel;
@@ -934,7 +934,7 @@ function pinLL(lat, lng) {
 // 실제 파일: 360이미지는 EXIF GPS를 읽고, 평면도는 내 컴퓨터 이미지를 그대로 보여준다
 async function addFiles(files) {
   const m = cur(), imgs = files.filter(f => /^image\/(jpeg|png)$/.test(f.type));
-  if (!imgs.length) { toast('JPG·PNG 이미지만 올릴 수 있어요'); return; }
+  if (!imgs.length) { toast('JPG·PNG 이미지만 올릴 수 있어요. 다른 파일을 골라주세요'); return; }
   toast('사진을 읽는 중이에요…');
   for (const f of imgs) {
     let ll = null;
@@ -944,12 +944,12 @@ async function addFiles(files) {
   const withGps = imgs.length && m.images.slice(-imgs.length).filter(i => i.ll).length;
   const k = autoPin(m); render(); $('#addImg')?.focus();
   toast(m.source === 'naver'
-    ? (k ? `${imgs.length}장을 추가했어요. ${k}장은 GPS 위치로 찍혔어요` : `${imgs.length}장을 추가했어요. 사진에 GPS 정보가 없어서 위치를 직접 찍어주세요`)
-    : `${imgs.length}장을 추가했어요${withGps ? ` · GPS가 있는 사진 ${withGps}장` : ''}`);
+    ? (k ? `${imgs.length}장을 추가했어요. ${k}장은 촬영 위치로 찍혔어요` : `${imgs.length}장을 추가했어요. 사진에 촬영 위치가 없어서 위치를 직접 찍어주세요`)
+    : `${imgs.length}장을 추가했어요${withGps ? ` · 촬영 위치가 있는 사진 ${withGps}장` : ''}`);
 }
 function setPlan(f) {
   if (!/^image\/(jpeg|png)$/.test(f.type)) { toast('PNG·JPG 이미지만 올릴 수 있어요'); return; }
-  if (f.size > 20 * 1024 * 1024) { toast('20MB보다 작은 이미지를 올려주세요'); return; }
+  if (f.size > 20 * 1024 * 1024) { toast('20MB가 넘는 이미지는 올릴 수 없어요. 용량을 줄여서 다시 올려주세요'); return; }
   const m = cur(); m.planUrl = URL.createObjectURL(f); m.map = true; render(); toast('평면도를 올렸어요'); $('#addImg').focus();
 }
 document.addEventListener('dragover', e => { if (e.target.closest?.('[data-drop]')) { e.preventDefault(); e.target.closest('[data-drop]').classList.add('over'); } });

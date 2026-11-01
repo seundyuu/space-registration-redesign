@@ -169,6 +169,10 @@ select.input { padding-right: 8px; }
 .detail-h { display: flex; align-items: center; gap: 8px; }
 .detail-h h3 { margin: 0; font-size: 14px; font-weight: 600; flex: 1; }
 .danger-link { align-self: flex-start; color: var(--destructive); }
+.check-row { display: flex; align-items: center; gap: 8px; cursor: pointer; margin-top: -4px; }
+.check-row input { appearance: none; width: 16px; height: 16px; flex: none; margin: 0; border: 1px solid var(--input); border-radius: 4px; display: grid; place-items: center; cursor: pointer; }
+.check-row input:checked { background: var(--primary); border-color: var(--primary); }
+.check-row input:checked::after { content: ""; width: 4px; height: 8px; border: solid #fff; border-width: 0 2px 2px 0; transform: translateY(-1px) rotate(45deg); }
 
 /* shadcn DropdownMenu */
 .menu-wrap { position: relative; }
@@ -219,7 +223,7 @@ dialog.big { width: min(1040px, calc(100% - 32px)); padding: 0; }
 .tool-row .tab[aria-checked="true"] { background: var(--background); color: var(--foreground); box-shadow: var(--shadow-xs); }
 svg.zones { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; }
 .zlabel { position: absolute; transform: translate(4px, 4px); font-size: 12px; font-weight: 600; color: var(--foreground); background: rgba(255,255,255,.9); padding: 1px 6px; border-radius: 4px; pointer-events: none; white-space: nowrap; }
-.mini .zlabel { font-size: 11px; }
+.mini .zlabel { display: none; }
 .zgroup { display: flex; flex-direction: column; gap: 6px; }
 .zhead { display: flex; align-items: center; gap: 8px; min-height: 32px; }
 .zhead i { width: 10px; height: 10px; border-radius: 3px; flex: none; }
@@ -357,7 +361,7 @@ const S = {
     { id: 5, map: 2, name: '바베큐장', file: 'IMG_20260915_145130_00_268.jpg', pin: { x: 30, y: 60 }, start: 50, c: [] },
     { id: 6, map: 2, name: '캠핑 사이트', file: 'IMG_20260915_162850_00_671.jpg', pin: { x: 66, y: 38 }, start: 50, c: [] },
   ],
-  mapId: 1, cur: 1, sel: null, filter: 'all', q: '', pan: .3, placing: null, saving: false,
+  cover: 1, mapId: 1, cur: 1, sel: null, filter: 'all', q: '', pan: .3, placing: null, saving: false,
 };
 let uid = 100;
 const P = id => S.photos.find(p => p.id === id);
@@ -462,13 +466,14 @@ function renderSide() {
             <span class="th" style="background:linear-gradient(${SKY[(p.id - 1) % SKY.length][0]} 50%, ${SKY[(p.id - 1) % SKY.length][1]} 50%)"><b>${idx(p)}</b></span>
             <span class="row-main"><span class="row-name">${esc(p.name)}</span>
               <span class="row-meta">${t.length ? t.map(x => `<span class="badge warn">${x}</span>`).join('') : `<span class="badge ok">${ic('check', 12)}완료</span>`}
-              ${p.c.length ? `<span class="badge">콘텐츠 ${p.c.length}</span>` : ''}</span></span>
+              ${p.c.length ? `<span class="badge">콘텐츠 ${p.c.length}</span>` : ''}${p.id === S.cover ? '<span class="badge solid">대표</span>' : ''}</span></span>
           </button>
           <div class="menu-wrap">
             <button class="btn btn-ghost btn-sm icon-btn" type="button" aria-haspopup="menu" aria-expanded="false" data-menu="photo" data-pid="${p.id}" data-k="pm${p.id}" aria-label="${esc(p.name)} 더보기">${ic('more')}</button>
             <div class="menu" role="menu" hidden>
               <button role="menuitem" type="button" data-act="pinPhoto" data-pid="${p.id}">${ic('pin')}${p.pin ? '지도 위치 바꾸기' : '지도에 위치 찍기'}</button>
               <button role="menuitem" type="button" data-act="movePhoto" data-pid="${p.id}">${ic('map')}다른 지도로 옮기기</button>
+              <button role="menuitem" type="button" data-act="cover" data-pid="${p.id}" ${p.id === S.cover ? 'aria-disabled="true"' : ''}>${ic('image')}${p.id === S.cover ? '지금 대표 사진이에요' : '대표 사진으로 정하기'}</button>
               <div class="menu-sep" role="separator"></div>
               <button role="menuitem" type="button" class="danger" data-act="delPhoto" data-pid="${p.id}">사진 삭제</button>
             </div>
@@ -543,7 +548,10 @@ function detail(c, others) {
   let f = '';
   if (c.type === 'move') f = `<div class="field"><label for="fTarget">어느 사진으로 갈까요?</label>
       <select class="input" id="fTarget" data-k="fTarget"><option value="">사진 고르기</option>
-      ${S.maps.map(m => `<optgroup label="${esc(m.label)}">${others.filter(o => o.map === m.id).map(o => `<option value="${o.id}" ${o.id === c.target ? 'selected' : ''}>${esc(o.name)}</option>`).join('')}</optgroup>`).join('')}</select></div>`;
+      ${S.maps.map(m => `<optgroup label="${esc(m.label)}">${others.filter(o => o.map === m.id).map(o => `<option value="${o.id}" ${o.id === c.target ? 'selected' : ''}>${esc(o.name)}</option>`).join('')}</optgroup>`).join('')}</select></div>
+    ${c.target ? (backOf(curP(), c)
+      ? `<p class="t-xs" style="margin:-6px 0 0;color:var(--accent);font-weight:600">${ic('check', 12)} ‘${esc(P(c.target).name)}’에서 돌아오는 버튼도 있어요</p>`
+      : `<label class="check-row"><input type="checkbox" id="fBack" data-k="fBack"><span class="t-sm">‘${esc(P(c.target).name)}’에서 돌아오는 버튼도 만들기</span></label>`) : ''}`;
   else {
     f = `<div class="field"><label for="fTitle">제목</label><input class="input" id="fTitle" data-k="fTitle" value="${esc(c.title || '')}" placeholder="방문자에게 보일 제목"></div>`;
     if (c.type === 'text') f += `<div class="field"><label for="fBody">내용</label><textarea class="input" id="fBody" data-k="fBody">${esc(c.body || '')}</textarea></div>`;
@@ -560,6 +568,16 @@ function detail(c, others) {
     ${c.type === 'move' && c.target ? `<button class="btn btn-outline" type="button" id="goTarget" data-k="goTarget">${esc(P(c.target).name)} 사진으로 가기</button>` : ''}
     <button class="btn btn-ghost danger-link" type="button" id="delC" data-k="delC">이 콘텐츠 삭제</button>
   </div>`;
+}
+
+// 운영 화면의 이동 버튼은 한쪽 방향뿐이라 양쪽 사진에 각각 만들어야 했다 → 기본으로 돌아오는 버튼까지 같이 만든다
+const backOf = (p, c) => c.target && P(c.target)?.c.find(k => k.type === 'move' && k.target === p.id);
+function ensureBack(p, c) {
+  const t = P(c.target);
+  if (!t || backOf(p, c)) return false;
+  const b = { id: uid++, type: 'move', target: p.id, x: (c.x + 150) % 300, y: c.y };
+  t.c.push(b); c.backId = b.id;
+  return true;
 }
 
 /* ── 360 보기 상호작용 ── */
@@ -599,8 +617,9 @@ function place(x, y) {
   if (typeof S.placing === 'number') { const c = p.c.find(k => k.id === S.placing); Object.assign(c, { x, y }); S.sel = c.id; }
   else {
     const c = { id: uid++, type: S.placing, x, y };
-    if (c.type === 'move') { const cand = photosOf(p.map).find(o => o.id !== p.id && !p.c.some(k => k.target === o.id)); c.target = cand?.id ?? null; }
+    if (c.type === 'move') { const cand = photosOf(p.map).find(o => o.id !== p.id && !p.c.some(k => k.target === o.id)); c.target = cand?.id ?? null; c.twoWay = true; }
     p.c.push(c); S.sel = c.id;
+    if (c.type === 'move' && ensureBack(p, c)) setTimeout(() => toast(`${j('‘' + P(c.target).name + '’', '에도', '에도')} 돌아오는 버튼을 만들었어요`), 0);
   }
   S.placing = null; changed(); render();
   (document.querySelector('#fTarget, #fTitle') || $('#viewer'))?.focus();
@@ -644,7 +663,11 @@ function bindPanel() {
     S.sel = +b.dataset.sel; const k = p.c.find(x => x.id === S.sel); setPan((k.x - 50) / 200); renderStage(); renderPanel(); });
   if (!c) return;
   $('#closeDetail').onclick = () => { S.sel = null; renderStage(); renderPanel(); $('#addC').focus(); };
-  const t = $('#fTarget'); if (t) t.onchange = () => { c.target = t.value ? +t.value : null; changed(); renderStage(); renderPanel(); renderSide(); };
+  const t = $('#fTarget'); if (t) t.onchange = () => {
+    // 이 버튼 때문에 자동으로 만든 돌아오는 버튼은 도착지를 바꾸면 같이 정리한다
+    if (c.backId) { S.photos.forEach(o => o.c = o.c.filter(k => k.id !== c.backId)); c.backId = null; }
+    c.target = t.value ? +t.value : null; const made = c.twoWay && c.target && ensureBack(p, c); changed(); renderStage(); renderPanel(); renderSide(); if (made) toast(`${j('‘' + P(c.target).name + '’', '에도', '에도')} 돌아오는 버튼을 만들었어요`); };
+  const fb = $('#fBack'); if (fb) fb.onchange = () => { if (fb.checked && ensureBack(p, c)) { c.twoWay = true; changed(); renderPanel(); renderSide(); toast(`${j('‘' + P(c.target).name + '’', '에도', '에도')} 돌아오는 버튼을 만들었어요`); } };
   [['#fTitle', 'title'], ['#fBody', 'body'], ['#fUrl', 'url']].forEach(([s, k]) => { const el = $(s); if (el) el.oninput = () => { c[k] = el.value; changed(); keepFocus(() => {}); renderStage(); }; });
   $('#rePlace').onclick = () => { S.placing = c.id; S.placingType = c.type; renderStage(); $('#viewer').focus(); };
   $('#goTarget') && ($('#goTarget').onclick = () => goPhoto(c.target));
@@ -826,7 +849,8 @@ document.addEventListener('input', e => { if (e.target.id === 'q') { S.q = e.tar
 
 function act(a, pid, el) {
   const p = P(pid);
-  if (el.getAttribute('aria-disabled') === 'true') return toast('지도가 하나뿐이라 삭제할 수 없어요');
+  if (el.getAttribute('aria-disabled') === 'true') return a === 'cover' ? null : toast('지도가 하나뿐이라 삭제할 수 없어요');
+  if (a === 'cover') { S.cover = pid; changed(); renderSide(); return toast(`${j('‘' + p.name + '’', '을', '를')} 대표 사진으로 정했어요. 내 공간 목록의 썸네일로 보여요`); }
   if (a === 'editMap') return openMapEditor();
   if (a === 'zoneMap') return openMapEditor(null, 'zone');
   if (a === 'renameMap') return renameMap();

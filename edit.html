@@ -51,6 +51,7 @@ svg.i { width: 16px; height: 16px; flex: none; fill: none; stroke: currentColor;
 .avatar { width: 34px; height: 34px; border-radius: 999px; background: var(--secondary); border: 1px solid var(--border); display: grid; place-items: center; padding: 0; cursor: pointer; }
 .gnb { height: 60px; flex: none; display: flex; align-items: center; gap: 12px; padding: 0 20px; border-bottom: 1px solid var(--border); }
 .gnb .spacer { flex: 1; }
+.btn.back-btn { width: 32px; height: 32px; margin-right: -6px; color: #404040; }
 .gnb h1 { margin: 0; font-size: 16px; line-height: 24px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .saved { display: inline-flex; align-items: center; gap: 6px; color: var(--muted-foreground); font-size: 13px; white-space: nowrap; }
 .saved svg { color: var(--accent); }
@@ -468,7 +469,7 @@ function keepFocus(fn) {
 function renderGnb() {
   const todo = S.photos.filter(p => todoOf(p).length).length;
   $('#gnb').innerHTML = `
-    <a class="btn btn-ghost icon-btn" href="spaces.html" aria-label="내 공간으로 돌아가기">${ic('arrowLeft')}</a>
+    <a class="btn btn-ghost icon-btn back-btn" href="spaces.html" aria-label="내 공간으로 돌아가기"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.25" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m12 19-7-7 7-7"/><path d="M19 12H5"/></svg></a>
     <h1>${esc(S.name)}</h1>
     <span class="badge ${S.vis === 'public' ? 'solid' : ''}">${S.vis === 'public' ? '공개 중' : '나만 보기'}</span>
     <span class="spacer"></span>

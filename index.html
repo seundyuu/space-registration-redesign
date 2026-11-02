@@ -124,7 +124,7 @@ fieldset { border: 0; margin: 0; padding: 0; min-width: 0; }
 .type-card .name { font-size: 18.5px; line-height: 29px; font-weight: 600; color: #111; }
 .type-card .desc { font-size: 12.4px; line-height: 16.5px; color: var(--desc); }
 .chips { display: flex; flex-wrap: wrap; justify-content: center; gap: 6px; padding-top: 4px; }
-.chip { border: 1px solid var(--card-border); background: #fff; border-radius: 999px; padding: 3px 9px; font-size: 12.4px; line-height: 16.5px; color: var(--chip-text); }
+.chip { display: inline-flex; align-items: center; border: 1px solid var(--card-border); background: #fff; border-radius: 999px; padding: 3px 9px; font-size: 12.4px; line-height: 16.5px; color: var(--chip-text); }
 .type-card:has(input:checked) { background: var(--accent-bg); border-color: var(--accent); outline: 2px solid var(--accent); outline-offset: -2px; }
 .type-card:has(input:checked) .illust { background: var(--accent-illust); }
 .type-card:has(input:focus-visible:not(:checked)) { outline: 2px solid var(--focus); outline-offset: 3px; }
@@ -215,8 +215,8 @@ fieldset { border: 0; margin: 0; padding: 0; min-width: 0; }
 .src-list { display: flex; flex-direction: column; gap: 6px; margin-top: 8px; padding-top: 14px; border-top: 1px solid var(--border); width: 100%; }
 .src-list .ck { color: var(--accent); font-style: normal; font-weight: 600; }
 .name-chips { display: flex; gap: 6px; flex-wrap: wrap; margin: 8px 24px 0; }
-.chip { height: 32px; padding: 0 12px; border: 1px solid var(--border); border-radius: 999px; background: var(--background); font-size: 13px; cursor: pointer; }
-.chip:hover { border-color: var(--foreground); }
+.name-chips .chip { height: 32px; padding: 0 12px; border-color: var(--border); background: var(--background); font-size: 13px; color: var(--foreground); cursor: pointer; }
+.name-chips .chip:hover { border-color: var(--foreground); }
 .add-map { width: 100%; height: 44px; border-style: dashed; border-color: var(--semantic-border); box-shadow: none; }
 
 /* tip (Figma 460:1337) */

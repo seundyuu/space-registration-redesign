@@ -73,6 +73,7 @@ img { display: block; }
 .btn-primary { background: var(--foreground); color: var(--primary-foreground); box-shadow: 0 1px 1px rgba(0,0,0,.1); }
 .btn-outline { background: var(--background); border-color: var(--border); box-shadow: var(--shadow-xs); border-radius: var(--radius-md); }
 .btn-ghost { background: transparent; }
+.btn-flat { box-shadow: none; }
 .btn-ghost:hover, .btn-outline:hover { background: var(--secondary); }
 .btn-destructive { background: var(--destructive); color: #fff; }
 .btn-lg { height: 44px; padding: 0 20px; }
@@ -395,10 +396,10 @@ dialog p { margin: 0 0 16px; color: var(--muted-foreground); }
 
   <main class="main">
     <div class="gnb">
-      <a class="btn btn-outline icon-btn" href="spaces.html" id="backBtn" aria-label="내 공간으로 돌아가기"><img src="assets/arrow-left.svg" width="16" height="16" alt=""></a>
+      <a class="btn btn-ghost icon-btn" href="spaces.html" id="backBtn" aria-label="내 공간으로 돌아가기"><img src="assets/arrow-left.svg" width="16" height="16" alt=""></a>
       <span class="t-sm-sb">새 공간 만들기</span>
       <span class="spacer"></span>
-      <button class="btn btn-ghost" type="button" id="saveDraft">임시 저장</button>
+      <button class="btn btn-outline btn-flat" type="button" id="saveDraft">임시 저장</button>
     </div>
     <div class="stepform" id="content" tabindex="-1">
       <nav aria-label="등록 단계"><ol class="stepper" id="stepper"></ol></nav>

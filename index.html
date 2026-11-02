@@ -57,7 +57,7 @@ img { display: block; }
 /* Navigation */
 .nav { height: 60px; display: flex; align-items: center; justify-content: space-between; padding: 0 36px; border-bottom: 1px solid var(--border); background: var(--background); }
 .logo { display: flex; align-items: flex-start; gap: 8px; }
-.avatar { width: 34px; height: 34px; border-radius: 999px; background: var(--secondary); border: 1px solid var(--border); display: grid; place-items: center; }
+.avatar { width: 34px; height: 34px; border-radius: 999px; background: var(--secondary); border: 1px solid var(--border); display: grid; place-items: center; padding: 0; cursor: pointer; }
 
 /* 레이아웃 */
 .shell { display: flex; min-height: calc(100vh - 60px); }
@@ -84,7 +84,7 @@ img { display: block; }
 .stepper { list-style: none; margin: 0; padding: 0; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
 .stepper li { display: flex; align-items: center; gap: 6px; padding: 6px 0; font-size: 14px; line-height: 20px; color: var(--muted-foreground); white-space: nowrap; }
 .stepper li + li::before { content: ""; width: 17px; height: 1px; background: var(--border); margin-right: 2px; }
-.stepper .num { width: 24px; height: 24px; border-radius: 8px; background: var(--secondary); color: var(--muted-foreground); font-size: 12px; line-height: 16px; font-weight: 700; display: grid; place-items: center; }
+.stepper .num { width: 24px; height: 24px; border-radius: 8px; background: var(--secondary); color: var(--muted-foreground); font-size: 12px; line-height: 16px; font-weight: 700; display: grid; place-items: center; padding: 0; cursor: pointer; }
 .stepper .step-btn { display: inline-flex; align-items: center; gap: 6px; border: 0; background: none; padding: 4px 6px; margin: 0 -6px; border-radius: 6px; cursor: pointer; color: inherit; font: inherit; }
 .stepper .step-btn:hover { background: var(--secondary); }
 .stepper li[aria-current="step"] { color: var(--foreground); font-weight: 600; }
@@ -173,7 +173,7 @@ fieldset { border: 0; margin: 0; padding: 0; min-width: 0; }
 .row { display: flex; align-items: center; gap: 10px; padding: 8px; border: 1px solid var(--border); border-radius: var(--radius-lg); background: var(--background); }
 .row[aria-current="true"] { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); background: var(--accent-bg); }
 .row-th { width: 44px; height: 44px; border-radius: 8px; flex: none; position: relative; }
-.row-th b { position: absolute; left: 4px; top: 4px; min-width: 20px; height: 20px; padding: 0 5px; border-radius: 99px; background: rgba(10,10,10,.8); color: #fff; font-size: 12px; display: grid; place-items: center; }
+.row-th b { position: absolute; left: 4px; top: 4px; min-width: 20px; height: 20px; padding: 0 5px; border-radius: 99px; background: rgba(10,10,10,.8); color: #fff; font-size: 12px; display: grid; place-items: center; padding: 0; cursor: pointer; }
 .row-main { flex: 1; min-width: 0; display: flex; flex-direction: column; }
 .row-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .ok-text { color: var(--accent); font-weight: 600; }
@@ -210,7 +210,7 @@ fieldset { border: 0; margin: 0; padding: 0; min-width: 0; }
 .src-card { display: flex; flex-direction: column; align-items: flex-start; gap: 8px; text-align: left; padding: 24px; border: 1px solid var(--border); border-radius: var(--radius-lg); background: var(--background); cursor: pointer; }
 .src-card:hover { border-color: var(--foreground); }
 .src-top { display: flex; width: 100%; justify-content: space-between; align-items: flex-start; margin-bottom: 8px; }
-.src-ico { width: 48px; height: 48px; border-radius: 12px; background: var(--secondary); display: grid; place-items: center; }
+.src-ico { width: 48px; height: 48px; border-radius: 12px; background: var(--secondary); display: grid; place-items: center; padding: 0; cursor: pointer; }
 .src-list { display: flex; flex-direction: column; gap: 6px; margin-top: 8px; padding-top: 14px; border-top: 1px solid var(--border); width: 100%; }
 .src-list .ck { color: var(--accent); font-style: normal; font-weight: 600; }
 .name-chips { display: flex; gap: 6px; flex-wrap: wrap; margin: 8px 24px 0; }
@@ -221,7 +221,7 @@ fieldset { border: 0; margin: 0; padding: 0; min-width: 0; }
 /* tip (Figma 460:1337) */
 /* 팁 = shadcn Alert 구조(아이콘 + 제목 + 설명). 아이콘은 lucide, 받침은 기존 파란 계열 타일 */
 .tip { background: var(--background); border: 1px solid var(--border); border-radius: var(--radius-lg); box-shadow: var(--shadow-xs); padding: 16px; display: grid; grid-template-columns: 36px 1fr; column-gap: 12px; row-gap: 2px; align-items: start; }
-.tip-ico { grid-row: span 2; width: 36px; height: 36px; border-radius: 8px; background: var(--accent-bg); color: var(--accent); display: grid; place-items: center; }
+.tip-ico { grid-row: span 2; width: 36px; height: 36px; border-radius: 8px; background: var(--accent-bg); color: var(--accent); display: grid; place-items: center; padding: 0; cursor: pointer; }
 .tip-title { margin: 0; padding-top: 1px; font-size: 14px; line-height: 20px; font-weight: 600; color: var(--foreground); }
 .tip-desc { margin: 0; font-size: 13px; line-height: 20px; color: var(--muted-foreground); }
 .side-sec { display: flex; flex-direction: column; gap: 16px; }
@@ -269,7 +269,7 @@ fieldset { border: 0; margin: 0; padding: 0; min-width: 0; }
 .badge { display: inline-flex; align-items: center; gap: 4px; padding: 2px 8px; border-radius: 6px; font-size: 12px; line-height: 16px; font-weight: 500; background: transparent; color: var(--foreground); border: 1px solid var(--border); white-space: nowrap; }
 .badge.ok { background: var(--primary); color: var(--primary-foreground); border-color: transparent; }
 #tp { display: flex; flex-direction: column; }
-.step-no { width: 22px; height: 22px; border-radius: 6px; background: var(--foreground); color: var(--primary-foreground); font-size: 12px; font-weight: 700; display: grid; place-items: center; }
+.step-no { width: 22px; height: 22px; border-radius: 6px; background: var(--foreground); color: var(--primary-foreground); font-size: 12px; font-weight: 700; display: grid; place-items: center; padding: 0; cursor: pointer; }
 .drop { border: 1px dashed var(--semantic-border); border-radius: var(--radius-lg); background: var(--sidebar); padding: 32px 20px; text-align: center; display: flex; flex-direction: column; align-items: center; gap: 4px; }
 .drop p { margin: 0 0 12px; }
 
@@ -286,7 +286,7 @@ fieldset { border: 0; margin: 0; padding: 0; min-width: 0; }
 .shot { border: 1px solid var(--border); border-radius: var(--radius-lg); overflow: hidden; background: #fff; }
 .shot[aria-current="true"] { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); }
 .shot .ph { height: 100px; position: relative; }
-.shot .ph .n { position: absolute; left: 8px; top: 8px; min-width: 22px; height: 22px; padding: 0 6px; border-radius: 99px; background: rgba(10,10,10,.75); color: #fff; font-size: 12px; font-weight: 600; display: grid; place-items: center; }
+.shot .ph .n { position: absolute; left: 8px; top: 8px; min-width: 22px; height: 22px; padding: 0 6px; border-radius: 99px; background: rgba(10,10,10,.75); color: #fff; font-size: 12px; font-weight: 600; display: grid; place-items: center; padding: 0; cursor: pointer; }
 .shot .ph .cap { position: absolute; left: 10px; bottom: 8px; color: #fff; font-size: 13px; font-weight: 600; text-shadow: 0 1px 2px rgba(0,0,0,.6); }
 .shot .meta { padding: 10px; display: flex; flex-direction: column; gap: 8px; }
 .shot .acts { display: flex; gap: 6px; }
@@ -387,7 +387,7 @@ dialog p { margin: 0 0 16px; color: var(--muted-foreground); }
     <img src="assets/logo-vtpartners.svg" width="134.478" height="14.5235" alt="">
     <img src="assets/logo-admin.svg" width="41.481" height="10.582" alt="" style="margin-top:2px">
   </span>
-  <button class="avatar" type="button" aria-label="사용자 메뉴"><img src="assets/user-round.svg" width="24" height="24" alt=""></button>
+  <button class="avatar" type="button" aria-label="사용자 메뉴"><img src="assets/user-round.svg" width="20" height="20" alt="" style="display:block"></button>
 </header>
 
 <div class="shell">

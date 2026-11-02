@@ -524,6 +524,7 @@ const placed = m => m.images.filter(i => i.pin).length;
 const isSingle = () => state.scale === 'single';
 const needsName = () => !isSingle() || state.maps.length > 1;
 const named = m => !!m.label.trim();
+const noImages = () => !state.maps.some(m => m.images.length);
 const done = m => (named(m) || !needsName()) && m.map && m.images.length > 0 && placed(m) === m.images.length;
 const dn = (m, i = state.maps.indexOf(m)) => named(m) ? m.label.trim() : needsName() ? `지도 ${i + 1}` : '지도';
 const cur = () => state.maps[state.active];
@@ -816,6 +817,7 @@ function blocker() {
     const u = m.images.length - placed(m);
     if (u) return `위치를 안 찍은 사진이 ${u}장 있어요. 공간을 만든 뒤 내 공간의 ‘편집’에서 찍을 수 있어요.`;
   }
+  if (state.step === 2 && noImages()) return '등록한 360이미지가 없어요. 지도 추가하기에서 1장 이상 추가해주세요.';
   if (state.step === 2) { const l = state.maps.filter(m => !done(m)).length; if (l) return `아직 다 못 채운 지도가 ${l}장 있어요. 나만 보기로 만든 뒤 내 공간의 ‘편집’에서 이어서 채울 수 있어요.`; }
   return '';
 }
@@ -823,7 +825,7 @@ function renderBar() {
   $('#prevBtn').hidden = state.step === 0;
   $('#nextBtn').textContent = state.step === 2 ? (state.vis === 'public' ? '만들고 공개하기' : '공간 만들기') : '다음';
   const m = blocker();
-  $('#nextBtn').setAttribute('aria-disabled', state.step === 0 && !!m);
+  $('#nextBtn').setAttribute('aria-disabled', (state.step === 0 || (state.step === 2 && noImages())) && !!m);
   $('#barMsg').textContent = m;
 }
 // 단계마다 브라우저 기록을 남겨, 브라우저 뒤로가기가 페이지를 떠나지 않고 이전 단계로 가게 한다
@@ -1052,6 +1054,7 @@ $('#nextBtn').onclick = () => {
     const i = state.maps.findIndex(m => !named(m));
     if (i >= 0) { state.nameTouched = true; openMap(i, '#mapName'); toast('방문자에게 보일 지도 이름을 붙여주세요'); return; }
   }
+  if (state.step === 2 && noImages()) { toast('360이미지를 1장 이상 추가해주세요'); return; }
   if (state.step === 2) { location.replace('edit.html?new=1&name=' + encodeURIComponent(state.name)); return; }
   go(state.step + 1);
 };

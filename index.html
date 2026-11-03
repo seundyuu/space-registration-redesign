@@ -101,7 +101,8 @@ img { display: block; }
 .title-block p { margin: 0; }
 
 /* Form (Figma: Wrapper / Select) */
-.field { display: flex; flex-direction: column; gap: 12px; width: 460px; max-width: 100%; }
+/* 이름 입력칸과 공간 크기 카드 묶음은 같은 너비(--form-w)로 — 오른쪽 끝선을 하나로 맞추고, 좁아지면 함께 줄어든다 */
+.field { display: flex; flex-direction: column; gap: 12px; width: var(--form-w, 714px); max-width: 100%; }
 .field label { font-size: 14px; line-height: 20px; font-weight: 500; }
 .req { color: var(--destructive); }
 .input { height: 36px; padding: 4px 12px; border: 1px solid var(--input); border-radius: var(--radius-md); background: var(--background); font-size: 14px; line-height: 20px; width: 100%; }
@@ -113,8 +114,9 @@ fieldset { border: 0; margin: 0; padding: 0; min-width: 0; }
 .legend { font-size: 14px; line-height: 20px; font-weight: 500; margin-bottom: 12px; padding: 0; }
 
 /* Space Type Card (Figma 460:1444 / 460:1472) */
-.cards { display: flex; gap: 24px; flex-wrap: wrap; }
-.type-card { position: relative; width: 345px; max-width: 100%; border: 1.5px solid var(--card-border); border-radius: var(--radius-card); background: #fff; overflow: hidden; cursor: pointer; display: flex; flex-direction: column; }
+/* 카드는 같은 비율로 함께 줄고, 한 장이 300px(일러스트가 잘리기 전)보다 좁아지면 한 줄에 한 장씩 */
+.cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(300px, 100%), 1fr)); gap: 24px; width: var(--form-w, 714px); max-width: 100%; }
+.type-card { position: relative; min-width: 0; border: 1.5px solid var(--card-border); border-radius: var(--radius-card); background: #fff; overflow: hidden; cursor: pointer; display: flex; flex-direction: column; }
 .type-card input { position: absolute; inset: 0; opacity: 0; cursor: pointer; margin: 0; }
 .type-card .illust { height: 130px; background: var(--illust-bg); position: relative; overflow: hidden; }
 .type-card .map { position: absolute; left: 50%; top: 50%; width: 285px; height: 124px; transform: translate(-50%, -50%); }
@@ -459,7 +461,6 @@ dialog p { margin: 0 0 16px; color: var(--muted-foreground); }
   .name-chips { margin: 8px 16px 0; }
   .src-card { padding: 18px; }
   /* 지도·목록 쌓기는 위의 작업공간 너비 기준(@container ws)이 맡는다 */
-  .type-card { width: 100%; }
 }
 @media (prefers-reduced-motion: reduce) { * { transition: none !important; } .coach-tip, .pin.coach b { animation: none; } }
 </style>

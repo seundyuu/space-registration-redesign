@@ -215,6 +215,10 @@ fieldset { border: 0; margin: 0; padding: 0; min-width: 0; }
 .row-main { flex: 1; min-width: 0; display: flex; flex-direction: column; }
 .row-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .ok-text { color: var(--accent); font-weight: 600; }
+/* 좁아서 줄이 바뀌어도 왼쪽 끝이 상태 글자와 맞게 */
+.row-st { display: flex; flex-wrap: wrap; column-gap: 8px; }
+.row-gps { padding: 0; border: 0; background: none; font: inherit; font-weight: 500; color: var(--muted-foreground); text-decoration: underline; text-underline-offset: 3px; cursor: pointer; white-space: nowrap; }
+.row-gps:hover { color: var(--foreground); }
 .row-btn { height: 36px; padding: 0 12px; flex: none; }
 .row-del { color: var(--muted-foreground); }
 .row-del:hover { color: var(--destructive); }
@@ -900,10 +904,12 @@ function row(img) {
   const m = cur(), n = m.images.indexOf(img) + 1, sel = state.sel === img.id;
   const status = img.pin ? (img.auto ? '✓ 자동으로 찍힘' : '✓ 직접 찍음') : m.source === 'naver' && !img.gps && !img.ll ? '촬영 위치 없음' : '위치 없음';
   const ck = state.checked.has(img.id), coach = m.coach === img.id && !sel;
+  // 직접 옮긴 핀인데 촬영 위치(GPS)가 있으면, 상태 줄 끝에서 이 사진만 GPS 위치로 되돌린다
+  const canGps = m.source === 'naver' && img.pin && !img.auto && (img.gps || img.ll);
   return `<li class="row${ck ? ' checked' : ''}${coach ? ' coach' : ''}"${sel ? ' aria-current="true"' : ''}>
     <input class="img-ck" type="checkbox" data-ck="${img.id}"${ck ? ' checked' : ''} aria-label="${esc(img.name)} 선택">
     <span class="row-th" style="background:${img.url ? `url('${img.url}') center/cover` : `linear-gradient(180deg,${img.c[0]} 0 55%,${img.c[1]} 55%)`}" aria-hidden="true"><b>${n}</b></span>
-    <span class="row-main"><span class="t-sm-sb row-name">${esc(img.name)}</span><span class="t-xs ${img.pin ? 'ok-text' : 'muted'}">${status}</span>${coach ? `<span class="coach-tip t-xs">지도에서 ${n}번 위치가 맞는지 확인해 보세요</span>` : ''}</span>
+    <span class="row-main"><span class="t-sm-sb row-name">${esc(img.name)}</span><span class="t-xs ${img.pin ? 'ok-text' : 'muted'}${canGps ? ' row-st' : ''}">${status}${canGps ? `<button class="row-gps" type="button" data-gps="${img.id}" aria-label="${esc(img.name)} GPS 위치로 되돌리기">GPS로 되돌리기</button>` : ''}</span>${coach ? `<span class="coach-tip t-xs">지도에서 ${n}번 위치가 맞는지 확인해 보세요</span>` : ''}</span>
     <button class="btn ${sel ? 'btn-primary' : 'btn-outline'} row-btn${!sel && !img.pin ? ' todo' : ''}" type="button" data-sel="${img.id}" aria-pressed="${sel}" aria-label="${esc(img.name)} 위치 ${sel ? '고르는 중, 취소' : img.pin ? '바꾸기' : '찍기'}">${sel ? '고르는 중' : img.pin ? '바꾸기' : '찍기'}</button>
     <button class="btn btn-ghost icon-btn row-del" type="button" data-del="${img.id}" aria-label="${esc(img.name)} 삭제"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6"/></svg></button>
   </li>`;
@@ -1130,6 +1136,11 @@ document.addEventListener('click', e => {
       render(); toast(`사진 ${gone.length}장을 삭제했어요`); $('#addImg').focus();
     });
     return;
+  }
+  if (t.dataset.gps) {
+    const img = m.images.find(i => i.id === +t.dataset.gps);
+    img.pin = null; if (state.sel === img.id) state.sel = null;
+    autoPin(m); render(); toast(`‘${img.name}’ 사진을 GPS 위치로 되돌렸어요`); $(`[data-sel="${img.id}"]`)?.focus(); return;
   }
   if (t.dataset.del) {
     if (m.coach) endCoach();

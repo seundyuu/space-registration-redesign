@@ -176,7 +176,17 @@ fieldset { border: 0; margin: 0; padding: 0; min-width: 0; }
 .ws-map { grid-area: map; position: relative; }
 .ws-list { grid-area: list; display: flex; flex-direction: column; gap: 8px; height: 0; min-height: 100%; overflow-y: auto; padding-right: 4px; }
 .ws-list-head { display: flex; align-items: center; gap: 10px; min-height: 36px; }
-.ws-list-head h3 { flex: 1; min-width: 0; }
+.ws-list-head h3 { flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+/* 화면이 좁아지면(사이드바가 보이는 1000px 안팎 등) 목록이 300px로 눌려 제목·상태 글자가 한 글자씩 깨진다
+   → 화면 너비가 아니라 작업공간 자체 너비를 기준으로, 좁으면 지도 위 · 목록 아래로 쌓는다 */
+.panel-body:has(> .ws) { container: ws / inline-size; }
+@container ws (max-width: 900px) {
+  .ws { grid-template-columns: minmax(0, 1fr); grid-template-areas: "mh" "map" "lh" "list"; }
+  .ws-lhead { margin-top: 12px; }
+  .ws-list { height: auto; min-height: 0; }
+}
+/* 폰 너비: 목록 머리 한 줄에 다 들어가도록 진행 막대는 숨기고 숫자(위치 3/3)만 */
+@container ws (max-width: 360px) { .ws .ws-prog i { display: none; } }
 .ws-list-head .del-sel { height: 36px; padding: 0 12px; color: var(--destructive); }
 .ws-prog { display: inline-flex; align-items: center; gap: 6px; color: var(--muted-foreground); font-variant-numeric: tabular-nums; white-space: nowrap; }
 .ws-prog i { width: 48px; height: 4px; border-radius: 99px; background: var(--secondary); overflow: hidden; display: block; }
@@ -448,9 +458,7 @@ dialog p { margin: 0 0 16px; color: var(--muted-foreground); }
   .title-hint { margin: 4px 16px 0; }
   .name-chips { margin: 8px 16px 0; }
   .src-card { padding: 18px; }
-  .ws { grid-template-columns: 1fr; grid-template-areas: "mh" "map" "lh" "list"; }
-  .ws-lhead { margin-top: 12px; }
-  .ws-list { height: auto; min-height: 0; }
+  /* 지도·목록 쌓기는 위의 작업공간 너비 기준(@container ws)이 맡는다 */
   .type-card { width: 100%; }
 }
 @media (prefers-reduced-motion: reduce) { * { transition: none !important; } .coach-tip, .pin.coach b { animation: none; } }

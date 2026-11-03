@@ -97,6 +97,7 @@ img { display: block; }
 
 .title-block { display: flex; flex-direction: column; gap: 6px; }
 .title-block h1 { margin: 0; }
+.title-block h1:focus { outline: none; }
 .title-block p { margin: 0; }
 
 /* Form (Figma: Wrapper / Select) */
@@ -156,7 +157,7 @@ fieldset { border: 0; margin: 0; padding: 0; min-width: 0; }
 .items.edit .input { height: 36px; flex: 1; min-width: 0; }
 .order-btns { display: flex; gap: 4px; }
 /* 지도 이름 = 지도 패널 제목에서 바로 수정 (인라인 편집) */
-.title-edit { display: inline-flex; align-items: center; gap: 6px; height: 36px; padding: 0 10px; margin-left: -10px; border: 1px solid transparent; border-radius: var(--radius-md); cursor: text; max-width: 100%; color: var(--muted-foreground); }
+.title-edit { display: inline-flex; align-items: center; gap: 6px; height: 36px; padding: 0 12px; border: 1px solid transparent; border-radius: var(--radius-md); cursor: text; max-width: 100%; color: var(--muted-foreground); }
 .title-edit input { border: 0; outline: 0; background: transparent; padding: 0; font-size: 16px; line-height: 24px; font-weight: 600; color: var(--foreground); min-width: 0; max-width: 100%; }
 .title-edit input::placeholder { color: var(--muted-foreground); font-weight: 500; }
 .title-edit:hover { border-color: var(--border); }
@@ -409,7 +410,6 @@ dialog p { margin: 0 0 16px; color: var(--muted-foreground); }
     </div>
     <div class="stepform body" id="view"></div>
     <div class="actionbar">
-      <button class="btn btn-outline btn-lg" type="button" id="prevBtn">이전</button>
       <span class="msg t-sm" id="barMsg" aria-live="polite"></span>
       <button class="btn btn-primary btn-lg" type="button" id="nextBtn">다음</button>
     </div>
@@ -823,7 +823,6 @@ function blocker() {
   return '';
 }
 function renderBar() {
-  $('#prevBtn').hidden = state.step === 0;
   $('#nextBtn').textContent = state.step === 2 ? (state.vis === 'public' ? '만들고 공개하기' : '공간 만들기') : '다음';
   const m = blocker();
   $('#nextBtn').setAttribute('aria-disabled', (state.step === 0 || (state.step === 2 && noImages())) && !!m);
@@ -1048,7 +1047,6 @@ $('#dlgCancel').onclick = () => $('#dlg').close();
 $('#dlgOk').onclick = () => { back = null; $('#dlg').close(); onOk?.(); };
 $('#dlg').addEventListener('close', () => back?.focus());
 
-$('#prevBtn').onclick = () => go(state.step - 1);
 $('#nextBtn').onclick = () => {
   if (state.step === 0 && blocker()) { state.touched = true; render(); (!state.name.trim() ? $('#nameInput') : $('input[name="scale"]')).focus(); return; }
   if (state.step === 1 && needsName()) {

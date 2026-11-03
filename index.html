@@ -307,6 +307,14 @@ fieldset { border: 0; margin: 0; padding: 0; min-width: 0; }
 /* 이름표는 겹치지 않게 평소엔 숨기고, 핀에 마우스를 올리면 핀 바로 위에 */
 .pin span { position: absolute; left: 50%; bottom: calc(100% + 8px); transform: translate(-50%, 4px); font-size: 12px; font-weight: 600; background: #fff; border: 1px solid var(--border); border-radius: 6px; padding: 2px 8px; white-space: nowrap; box-shadow: 0 2px 6px rgba(0,0,0,.12); opacity: 0; pointer-events: none; transition: opacity .12s, transform .12s; z-index: 2; }
 .pin:has(b:hover) { z-index: 3; }
+/* 학습용 안내(1번 사진): 하늘색 카드 + 깜빡이는 안내 문구 + 핀 둘레 파동. 핀 이름표는 계속 보이게 */
+.row.coach { background: #eef7ff; border-color: #a9d8ff; }
+.coach-tip { color: #1a8cff; font-weight: 600; animation: coach-blink 1.2s ease-in-out infinite; }
+.pin.coach { z-index: 3; }
+.pin.coach b { animation: coach-ring 1.4s ease-out infinite; }
+.pin.coach span { opacity: 1; transform: translate(-50%, 0); background: #eef7ff; border-color: #a9d8ff; }
+@keyframes coach-blink { 0%, 100% { opacity: 1; } 50% { opacity: .25; } }
+@keyframes coach-ring { 0% { box-shadow: 0 0 0 0 rgba(56,170,255,.6); } 100% { box-shadow: 0 0 0 14px rgba(56,170,255,0); } }
 .pin:has(b:hover) span { opacity: 1; transform: translate(-50%, 0); }
 
 .grid { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 12px; }
@@ -419,7 +427,7 @@ dialog p { margin: 0 0 16px; color: var(--muted-foreground); }
   .ws-list { max-height: none; }
   .type-card { width: 100%; }
 }
-@media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; } .coach-tip, .pin.coach b { animation: none; } }
 </style>
 </head>
 <body>
@@ -500,7 +508,7 @@ const nv = { status: 'none' }; // none | nokey | loading | ready | failed(인증
 const DEFAULT_LL = { lat: 37.5666, lng: 126.9784 };
 const isReal = m => m.source === 'naver' && nv.status === 'ready';
 // 시안용 GPS 좌표(지도 위 %). 3장 중 1장은 GPS가 없는 사진으로 가정
-const GPS = [[24, 58], [32, 68], [50, 50], [64, 30], [74, 38], [50, 50], [56, 74], [46, 80]];
+const GPS = [[24, 58], [32, 68], [30, 60], [64, 30], [74, 38], [70, 34], [56, 74], [46, 80]];
 // 네이버 지도면 GPS가 있는 사진은 자동으로 위치가 찍힌다
 function autoPin(m) {
   if (m.source !== 'naver') return 0;
@@ -522,6 +530,9 @@ function autoPin(m) {
   if (k) m.needFit = true;
   return k;
 }
+// 학습용 안내: 처음 사진이 자동으로 찍히면 1번 사진의 카드·핀을 하늘색으로 깜빡여 '위치 확인·바꾸기'를 알려 준다. 위치를 한 번 만지면 끝
+function coachFirst(m) { if (state.coachDone || m.coach) return; const f = m.images[0]; if (f?.pin) m.coach = f.id; }
+const endCoach = () => { state.coachDone = true; state.maps.forEach(x => { x.coach = null; }); };
 function loadNaver() {
   if (nv.status !== 'none') return;
   if (!NAVER_KEY) { nv.status = 'nokey'; return; }
@@ -561,7 +572,7 @@ function mountNaver(m) {
   m.nv.markers.forEach(k => k.setMap(null));
   m.nv.markers = m.images.filter(i => i.pin && i.pin.lat !== undefined).map(i => new naver.maps.Marker({
     map, position: new naver.maps.LatLng(i.pin.lat, i.pin.lng), title: i.name,
-    icon: { content: `<div class="pin static${i.auto ? '' : ' manual'}"><b>${m.images.indexOf(i) + 1}</b><span>${esc(i.name)}</span></div>`, anchor: new naver.maps.Point(11, 11) },
+    icon: { content: `<div class="pin static${i.auto ? '' : ' manual'}${m.coach === i.id ? ' coach' : ''}"><b>${m.images.indexOf(i) + 1}</b><span>${esc(i.name)}</span></div>`, anchor: new naver.maps.Point(11, 11) },
   }));
   if (m.needFit) {
     const pts = m.images.filter(i => i.pin && i.pin.lat !== undefined);
@@ -790,7 +801,7 @@ function workspace(m) {
         aria-label="${esc(dn(m))} ${SRC[m.source]}${s ? `, ‘${esc(s.name)}’ 위치 고르는 중` : ''}">
         ${isReal(m) ? '<div class="nmap-slot" id="nmapSlot"></div>'
           : (m.source === 'naver' ? NAVER_SVG : m.planUrl ? `<img class="plan-img" src="${m.planUrl}" alt="">` : PLAN_SVG)
-            + pl.map(i => `<div class="pin${i.auto ? '' : ' manual'}" style="left:${i.pin.x}%;top:${i.pin.y}%"><b>${m.images.indexOf(i) + 1}</b><span>${esc(i.name)}</span></div>`).join('')}
+            + pl.map(i => `<div class="pin${i.auto ? '' : ' manual'}${m.coach === i.id ? ' coach' : ''}" style="left:${i.pin.x}%;top:${i.pin.y}%"><b>${m.images.indexOf(i) + 1}</b><span>${esc(i.name)}</span></div>`).join('')}
         ${s ? `<div class="cross" id="cross" style="left:${isReal(m) ? 50 : c.x}%;top:${isReal(m) ? 50 : c.y}%" aria-hidden="true"></div>` : ''}
       </div>
       <p class="sr-only" id="crossPos" aria-live="polite">${s ? (isReal(m) ? '방향키로 지도를 옮겨 가운데 십자선에 맞추고 Enter로 찍어요.' : `가로 ${Math.round(c.x)}%, 세로 ${Math.round(c.y)}%`) : ''}</p>
@@ -828,11 +839,11 @@ function bulkBar(m) {
 function row(img) {
   const m = cur(), n = m.images.indexOf(img) + 1, sel = state.sel === img.id;
   const status = img.pin ? (img.auto ? '✓ 자동으로 찍힘' : '✓ 직접 찍음') : m.source === 'naver' && !img.gps && !img.ll ? '촬영 위치 없음' : '위치 없음';
-  const ck = state.checked.has(img.id);
-  return `<li class="row${ck ? ' checked' : ''}"${sel ? ' aria-current="true"' : ''}>
+  const ck = state.checked.has(img.id), coach = m.coach === img.id && !sel;
+  return `<li class="row${ck ? ' checked' : ''}${coach ? ' coach' : ''}"${sel ? ' aria-current="true"' : ''}>
     <input class="img-ck" type="checkbox" data-ck="${img.id}"${ck ? ' checked' : ''} aria-label="${esc(img.name)} 선택">
     <span class="row-th" style="background:${img.url ? `url('${img.url}') center/cover` : `linear-gradient(180deg,${img.c[0]} 0 55%,${img.c[1]} 55%)`}" aria-hidden="true"><b>${n}</b></span>
-    <span class="row-main"><span class="t-sm-sb row-name">${esc(img.name)}</span><span class="t-xs ${img.pin ? 'ok-text' : 'muted'}">${status}</span></span>
+    <span class="row-main"><span class="t-sm-sb row-name">${esc(img.name)}</span><span class="t-xs ${img.pin ? 'ok-text' : 'muted'}">${status}</span>${coach ? `<span class="coach-tip t-xs">지도에서 ${n}번 위치가 맞는지 확인해 보세요</span>` : ''}</span>
     <button class="btn ${sel ? 'btn-primary' : 'btn-outline'} row-btn" type="button" data-sel="${img.id}" aria-pressed="${sel}" aria-label="${esc(img.name)} 위치 ${sel ? '고르는 중, 취소' : img.pin ? '바꾸기' : '찍기'}">${sel ? '고르는 중' : img.pin ? '바꾸기' : '찍기'}</button>
     <button class="btn btn-ghost icon-btn row-del" type="button" data-del="${img.id}" aria-label="${esc(img.name)} 삭제"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6"/></svg></button>
   </li>`;
@@ -1041,11 +1052,12 @@ document.addEventListener('click', e => {
 
   if (t.id === 'addImg') { $('#imgFile').click(); return; }
   if (t.id === 'demoImg') {
-    for (let k = 0; k < 3; k++) { const n = m.images.length; m.images.push({ id: uid++, name: NAMES[n % NAMES.length] + (n >= NAMES.length ? ' ' + (Math.floor(n / NAMES.length) + 1) : ''), pin: null, c: SKY[n % SKY.length], url: `assets/pano/${DEMO_IMG[n % DEMO_IMG.length]}-s.jpg`, gps: n % 3 === 2 ? null : GPS[n % GPS.length], ll: n % 3 === 2 ? null : DEMO_LL[DEMO_IMG[n % DEMO_IMG.length]] }); }
-    const k = autoPin(m); render();
+    for (let k = 0; k < 3; k++) { const n = m.images.length; m.images.push({ id: uid++, name: NAMES[n % NAMES.length] + (n >= NAMES.length ? ' ' + (Math.floor(n / NAMES.length) + 1) : ''), pin: null, c: SKY[n % SKY.length], url: `assets/pano/${DEMO_IMG[n % DEMO_IMG.length]}-s.jpg`, gps: GPS[n % GPS.length], ll: DEMO_LL[DEMO_IMG[n % DEMO_IMG.length]] }); }
+    const k = autoPin(m); coachFirst(m); render();
     toast(k ? `예시 사진 3장을 넣었어요. ${k}장은 촬영 위치로 찍혔어요` : '예시 사진 3장을 넣었어요'); $('#addImg').focus(); return;
   }
   if (t.dataset.sel) {
+    if (m.coach) endCoach();
     const id = +t.dataset.sel;
     if (state.sel === id) { state.sel = null; render(); $(`[data-sel="${id}"]`)?.focus(); return; }
     const img = m.images.find(i => i.id === id);
@@ -1060,6 +1072,7 @@ document.addEventListener('click', e => {
     return;
   }
   if (t.dataset.del) {
+    if (m.coach) endCoach();
     const img = m.images.find(i => i.id === +t.dataset.del);
     confirmBox('이 사진을 삭제할까요?', `‘${img.name}’ 사진과 지도에 찍은 위치가 같이 지워져요.`, t, () => {
       m.images.splice(m.images.indexOf(img), 1); if (state.sel === img.id) state.sel = null; state.checked.delete(img.id);
@@ -1135,7 +1148,7 @@ async function addFiles(files) {
     m.images.push({ id: uid++, name: f.name.replace(/\.[^.]+$/, ''), url: URL.createObjectURL(f), pin: null, gps: null, ll });
   }
   const withGps = imgs.length && m.images.slice(-imgs.length).filter(i => i.ll).length;
-  const k = autoPin(m); render(); $('#addImg')?.focus();
+  const k = autoPin(m); coachFirst(m); render(); $('#addImg')?.focus();
   toast(m.source === 'naver'
     ? (k ? `${imgs.length}장을 추가했어요. ${k}장은 촬영 위치로 찍혔어요` : `${imgs.length}장을 추가했어요. 사진에 촬영 위치가 없어서 위치를 직접 찍어주세요`)
     : `${imgs.length}장을 추가했어요${withGps ? ` · 촬영 위치가 있는 사진 ${withGps}장` : ''}`);

@@ -399,6 +399,11 @@ dialog p { margin: 0 0 16px; color: var(--muted-foreground); }
   .m-chip[aria-current="true"] { border-color: var(--foreground); background: var(--foreground); color: var(--primary-foreground); }
   .m-chip .cnt { font-size: 12px; font-weight: 500; opacity: .8; }
   .m-chip.add { border-style: dashed; border-color: var(--semantic-border); font-weight: 500; }
+  /* 칩 순서 바꾸기: 마우스는 끌면 바로, 터치는 길게 눌러 집은 뒤 끈다(짧게 밀면 그냥 가로 스크롤) */
+  .m-chip[data-mc] { touch-action: pan-x; user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; }
+  .m-chip.lifting { position: relative; z-index: 2; cursor: grabbing; box-shadow: 0 6px 16px rgba(0,0,0,.18); transition: none; }
+  .m-chip.mc-before { box-shadow: -4px 0 0 var(--accent); }
+  .m-chip.mc-after { box-shadow: 4px 0 0 var(--accent); }
   .panel-head { padding: 16px 16px 0; }
   .panel-body { padding: 12px 16px 16px; }
   .title-hint { margin: 4px 16px 0; }
@@ -729,7 +734,7 @@ function vMaps() {
   const m = cur(), i = state.active;
   const nameErr = state.nameTouched && !named(m);
   return `
-  ${needsName() ? `<nav class="m-maps" aria-label="지도 목록">${state.maps.map((x, k) => `<button class="m-chip" type="button" data-map="${k}"${k === i ? ' aria-current="true"' : ''}>${esc(named(x) ? dn(x, k) : '이름 없음')}<span class="cnt">${placed(x)}/${x.images.length}</span></button>`).join('')}<button class="m-chip add" type="button" data-add-map>+ 지도 추가</button></nav>` : ''}
+  ${needsName() ? `<nav class="m-maps" aria-label="지도 목록">${state.maps.map((x, k) => `<button class="m-chip" type="button" data-map="${k}" data-mc="${k}"${k === i ? ' aria-current="true"' : ''}>${esc(named(x) ? dn(x, k) : '이름 없음')}<span class="cnt">${placed(x)}/${x.images.length}</span></button>`).join('')}<button class="m-chip add" type="button" data-add-map>+ 지도 추가</button></nav>` : ''}
   <section class="panel" aria-labelledby="${needsName() ? 'mapName' : 'mapH'}">
     <div class="panel-head">
       ${needsName() ? `<label class="title-edit${named(m) ? '' : ' empty'}${nameErr ? ' invalid' : ''}">
@@ -964,6 +969,7 @@ document.addEventListener('input', e => {
       box.classList.remove('invalid'); e.target.setAttribute('aria-invalid', 'false'); e.target.setAttribute('aria-describedby', 'mapNameHint');
       hint.id = 'mapNameHint'; hint.className = 'title-hint t-xs muted'; hint.textContent = '이 이름이 방문자 화면에서 미니맵 이름으로 보여요.';
     }
+    const chip = $(`.m-chip[data-mc="${state.active}"]`); if (chip) chip.firstChild.textContent = ok ? v.trim() : '이름 없음';
     renderSidebar(); renderBar();
   }
 });
@@ -976,6 +982,42 @@ document.addEventListener('change', e => {
   if (e.target.id === 'autoZone') { cur().autoZones = e.target.checked; render(); $('#autoZone')?.focus(); toast(e.target.checked ? '촬영 위치로 구역을 잡았어요' : '자동 구역을 껐어요'); }
   if (e.target.id === 'planFile') { const f = e.target.files[0]; if (f) setPlan(f); e.target.value = ''; }
 });
+// 상단 지도 칩 끌어서 순서 바꾸기 (좁은 화면). HTML 드래그는 터치에서 안 되므로 포인터 이벤트로 직접 처리
+let mc = null, eatClick = false;
+const mcClear = () => document.querySelectorAll('.mc-before, .mc-after').forEach(el => el.classList.remove('mc-before', 'mc-after'));
+function mcLift() { mc.on = true; mc.el.classList.add('lifting'); mc.el.setPointerCapture?.(mc.pid); navigator.vibrate?.(10); }
+document.addEventListener('pointerdown', e => {
+  const el = e.target.closest?.('.m-chip[data-mc]'); if (!el || e.button > 0) return;
+  mc = { el, from: +el.dataset.mc, x0: e.clientX, y0: e.clientY, pid: e.pointerId, on: false, to: null, touch: e.pointerType !== 'mouse' };
+  if (mc.touch) mc.timer = setTimeout(() => mc && mcLift(), 350);
+});
+document.addEventListener('pointermove', e => {
+  if (!mc || e.pointerId !== mc.pid) return;
+  const dx = e.clientX - mc.x0, dy = e.clientY - mc.y0;
+  if (!mc.on) {
+    if (mc.touch) { if (Math.hypot(dx, dy) > 8) { clearTimeout(mc.timer); mc = null; } return; } // 집기 전에 움직이면 스크롤로 본다
+    if (Math.abs(dx) < 6) return; mcLift();
+  }
+  mc.el.style.transform = `translateX(${dx}px) scale(1.04)`;
+  const chips = [...document.querySelectorAll('.m-chip[data-mc]')].filter(c => c !== mc.el); mcClear(); mc.to = null;
+  for (const c of chips) { const r = c.getBoundingClientRect(); if (e.clientX >= r.left && e.clientX <= r.right) {
+    const after = e.clientX > r.left + r.width / 2; c.classList.add(after ? 'mc-after' : 'mc-before');
+    let to = +c.dataset.mc + (after ? 1 : 0); if (mc.from < to) to--; mc.to = to; break; } }
+});
+// 터치로 집은 동안엔 가로 스크롤을 막는다
+document.addEventListener('touchmove', e => { if (mc?.on) e.preventDefault(); }, { passive: false });
+function mcEnd(e) {
+  if (!mc || (e && e.pointerId !== mc.pid)) return;
+  clearTimeout(mc.timer); const { on, from, to, el } = mc; mc = null; mcClear();
+  if (!on) return;
+  el.classList.remove('lifting'); el.style.transform = ''; eatClick = true; setTimeout(() => { eatClick = false; }, 0);
+  if (to !== null && moveMap(from, to)) $(`.m-chip[data-mc="${to}"]`)?.focus();
+}
+document.addEventListener('pointerup', mcEnd);
+document.addEventListener('pointercancel', mcEnd);
+// 끌기를 마친 뒤 따라오는 클릭은 지도 열기로 처리하지 않는다
+document.addEventListener('click', e => { if (eatClick) { eatClick = false; e.stopPropagation(); e.preventDefault(); } }, true);
+document.addEventListener('contextmenu', e => { if (e.target.closest?.('.m-chip[data-mc]')) e.preventDefault(); });
 document.addEventListener('click', e => {
   const t = e.target.closest('button, #plan, a[href="#"], #backBtn');
   if (!t) return;

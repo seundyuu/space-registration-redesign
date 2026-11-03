@@ -61,7 +61,7 @@ img { display: block; }
 
 /* 레이아웃 */
 .shell { display: flex; min-height: calc(100vh - 60px); }
-.sidebar { width: 312px; flex: none; background: var(--sidebar); padding: 7px 20px 36px; /* 첫 단계 카드 제목을 오른쪽 '새 공간 만들기'와 같은 줄에 */ display: flex; flex-direction: column; gap: 24px; }
+.sidebar { width: 312px; flex: none; background: var(--sidebar); padding: 36px 20px; display: flex; flex-direction: column; gap: 24px; }
 .main { flex: 1; min-width: 0; display: flex; flex-direction: column; }
 .gnb { height: 60px; display: flex; align-items: center; gap: 12px; padding: 0 20px; border-bottom: 1px solid var(--border); background: var(--background); }
 .gnb .spacer { flex: 1; }
@@ -671,7 +671,8 @@ function renderSidebar() {
     tip('history', '나중에 이어서 채우기', '다 못 채운 지도는 공간을 만든 뒤 내 공간의 ‘편집’에서 이어서 채울 수 있어요.'),
   ];
   $('#sidebar').innerHTML = `
-    <section class="side-sec" aria-label="등록 단계">
+    <section class="side-sec" aria-labelledby="flowH">
+      <h2 id="flowH" class="t-base-sb">진행 순서</h2>
       <ol class="flow">${STEPS.map((s, i) => { const curr = i === state.step, d = stepDone(i) && !curr;
         return `<li class="${d ? 'done' : ''}"${curr ? ' aria-current="step"' : ''}>
           <button class="flow-btn" type="button" data-goto-step="${i}"><span class="no" aria-hidden="true">${d ? '✓' : i + 1}</span>

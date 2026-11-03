@@ -363,12 +363,10 @@ tbody tr:hover { background: rgba(245,245,245,.5); }
 tbody th { font-weight: 500; }
 .num { text-align: right; font-variant-numeric: tabular-nums; }
 /* shadcn Progress: h-2 rounded-full bg-primary/20 — 미배치 구간은 빗금으로 색 외 구분 */
-.rv-sum { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; margin: 0 0 16px; }
+.rv-sum { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; margin: 0 0 16px; }
 .rv-sum > div { background: var(--sidebar); border-radius: var(--radius-lg); padding: 14px 16px; }
 .rv-sum dt { font-size: 12px; line-height: 16px; color: var(--muted-foreground); }
 .rv-sum dd { margin: 4px 0 0; font-size: 20px; line-height: 28px; font-weight: 700; font-variant-numeric: tabular-nums; }
-.rv-sum dd span { font-size: 14px; font-weight: 500; color: var(--muted-foreground); }
-.rv-sum dd.ok { color: var(--accent); }
 .rv-list { list-style: none; margin: 0; padding: 0; border-top: 1px solid var(--border); }
 .rv-row { display: grid; grid-template-columns: 24px minmax(0, 1fr) 160px 110px auto; align-items: center; gap: 16px; padding: 12px 0; border-bottom: 1px solid var(--border); }
 .rv-no { width: 24px; height: 24px; border-radius: 6px; background: var(--secondary); display: grid; place-items: center; font-size: 12px; font-weight: 700; color: var(--muted-foreground); }
@@ -903,7 +901,7 @@ function row(img) {
 // 확인하기: 요약 한 줄 + 지도 목록 하나(차트와 표가 같은 내용을 두 번 보여주던 것을 합침 — One Thing).
 // 목록은 위에서부터 방문자에게 보이는 순서, 줄마다 위치 진행률과 바로 고치러 가기
 function vReview() {
-  const tot = state.maps.reduce((n, m) => n + m.images.length, 0), pl = state.maps.reduce((n, m) => n + placed(m), 0);
+  const tot = state.maps.reduce((n, m) => n + m.images.length, 0);
   return `
   <section class="panel" aria-labelledby="rvH">
     <div class="panel-head"><h2 id="rvH" class="t-base-sb">만들 내용</h2></div>
@@ -911,7 +909,6 @@ function vReview() {
       <dl class="rv-sum">
         <div><dt>지도</dt><dd>${state.maps.length}장</dd></div>
         <div><dt>360이미지</dt><dd>${tot}장</dd></div>
-        <div><dt>위치를 찍은 사진</dt><dd class="${tot && pl === tot ? 'ok' : ''}">${pl}<span>/${tot}장</span></dd></div>
       </dl>
       <ol class="rv-list" aria-label="지도 목록. 위에서부터 방문자에게 보이는 순서예요">${state.maps.map((m, i) => { const p = placed(m), n = m.images.length, ok = done(m);
         return `<li class="rv-row">

@@ -245,6 +245,14 @@ fieldset { border: 0; margin: 0; padding: 0; min-width: 0; }
 .items.sub .item .label { font-size: 14px; line-height: 20px; }
 .items.sub .item .no { width: 22px; font-size: 13px; line-height: 20px; padding: 0; }
 .items.sub .marks { gap: 6px; }
+/* 지도 순서: 행을 끌어 놓거나, 손잡이에서 ↑↓ */
+.items.sub li.map-sortable { display: flex; flex-direction: row; align-items: center; gap: 2px; border: 0; background: none; }
+.items.sub li.map-sortable > .item { flex: 1; min-width: 0; }
+.map-grip { flex: none; width: 18px; height: 32px; padding: 0; margin-left: -6px; border: 0; border-radius: 4px; background: none; color: var(--semantic-border); display: grid; place-items: center; cursor: grab; }
+.map-grip:hover { background: var(--secondary); color: var(--muted-foreground); }
+.map-sortable.dragging { opacity: .4; }
+.map-sortable.drop-before > .item { box-shadow: 0 -3px 0 var(--accent); }
+.map-sortable.drop-after > .item { box-shadow: 0 3px 0 var(--accent); }
 .flow-sub .add-map { height: 36px; background: var(--background); }
 .flow-btn .no { width: 24px; height: 24px; border-radius: 8px; flex: none; background: var(--secondary); display: grid; place-items: center; font-size: 12px; font-weight: 700; color: var(--muted-foreground); }
 .flow li[aria-current="step"] > .flow-btn .no { background: var(--accent); color: #fff; }
@@ -623,9 +631,10 @@ function renderTitle() {
 
 /* ── 사이드바: 모든 단계에서 같은 단계 카드. 현재 단계 카드가 펼쳐지고, 지난 단계는 입력한 내용을 요약 ── */
 function mapsSub() {
-  const n = state.maps.length;
+  const n = state.maps.length, sortable = needsName() && n > 1;
   return `<div class="flow-sub">
-    <ul class="items sub">${state.maps.map((m, i) => `<li>
+    <ul class="items sub">${state.maps.map((m, i) => `<li${sortable ? ` class="map-sortable" draggable="true" data-mi="${i}"` : ''}>
+      ${sortable ? `<button class="map-grip" type="button" data-grip="${i}" aria-label="${esc(dn(m, i))} 순서 바꾸기. 위아래 화살표로 옮겨요" title="끌어서 순서 바꾸기"><svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><circle cx="9" cy="6" r="1.6"/><circle cx="15" cy="6" r="1.6"/><circle cx="9" cy="12" r="1.6"/><circle cx="15" cy="12" r="1.6"/><circle cx="9" cy="18" r="1.6"/><circle cx="15" cy="18" r="1.6"/></svg></button>` : ''}
       <button class="item" type="button" data-map="${i}"${i === state.active ? ' aria-current="true"' : ''}>
         <span class="lead"><span class="no" aria-hidden="true">${i + 1}</span><span class="label"${named(m) || !needsName() ? '' : ' style="color:var(--muted-foreground);font-weight:500"'}>${esc(named(m) || !needsName() ? dn(m, i) : '이름 없음')}</span></span>
         <span class="marks">
@@ -645,7 +654,7 @@ function renderSidebar() {
   ];
   const tips = [
     tip('history', '임시 저장', '입력한 내용을 저장해 두고 나중에 이어서 등록할 수 있어요.'),
-    needsName() ? tip('arrowUpDown', '보이는 순서예요', '위에서부터 방문자에게 보이는 순서예요. 지도의 ⋯ 메뉴에서 바꿀 수 있어요.')
+    needsName() ? tip('arrowUpDown', '보이는 순서예요', '위에서부터 방문자에게 보이는 순서예요. 왼쪽 목록에서 끌어서 바꿀 수 있어요.')
                 : tip('layers', '구역이 더 있나요?', '층이나 구역이 더 있으면 복합 공간으로 바꿔주세요.'),
     tip('history', '나중에 이어서 채우기', '다 못 채운 지도는 공간을 만든 뒤 내 공간의 ‘편집’에서 이어서 채울 수 있어요.'),
   ];
@@ -736,13 +745,9 @@ function vMaps() {
     <div class="panel-body">${mapBody(m)}</div>
   </section>`;
 }
-// 자주 쓰지 않는 동작(순서·방식·삭제)은 더보기 메뉴로 접는다(힉) — shadcn DropdownMenu
+// 자주 쓰지 않는 동작(방식·삭제)은 더보기 메뉴로 접는다(힉). 순서는 사이드바에서 끌어서 바꾼다 — shadcn DropdownMenu
 function moreMenu(m) {
   const i = state.active, n = state.maps.length, items = [];
-  if (needsName() && n > 1) {
-    items.push(`<button type="button" role="menuitem" tabindex="-1" data-act="up"${i === 0 ? ' aria-disabled="true"' : ''}>위로 옮기기</button>`);
-    items.push(`<button type="button" role="menuitem" tabindex="-1" data-act="down"${i === n - 1 ? ' aria-disabled="true"' : ''}>아래로 옮기기</button>`);
-  }
   if (m.source) items.push(`<button type="button" role="menuitem" tabindex="-1" data-act="src">지도 방식 바꾸기</button>`);
   if (n > 1) items.push(`<span class="menu-sep" role="separator"></span><button type="button" role="menuitem" tabindex="-1" data-act="del" class="danger">지도 삭제</button>`);
   if (!items.length) return '';
@@ -1073,10 +1078,6 @@ function toggleMenu(open, last) {
 function menuAct(act) {
   const m = cur(), i = state.active, ms = state.maps;
   toggleMenu(false);
-  if (act === 'up' || act === 'down') {
-    const j = i + (act === 'up' ? -1 : 1); [ms[i], ms[j]] = [ms[j], ms[i]]; state.active = j; render();
-    toast(`‘${dn(m)}’ 지도를 ${j + 1}번째로 옮겼어요`); $('#moreBtn').focus(); return;
-  }
   if (act === 'src') { m.map = false; m.source = null; m.images.forEach(x => { x.pin = null; x.auto = false; }); state.sel = null; render(); $('[data-src="naver"]').focus(); return; }
   if (act === 'del') {
     confirmBox('이 지도를 삭제할까요?', `‘${dn(m)}’ 지도와 360이미지 ${m.images.length}장이 같이 지워져요.`, $('#moreBtn'), () => {
@@ -1112,6 +1113,36 @@ function setPlan(f) {
   if (f.size > 20 * 1024 * 1024) { toast('20MB가 넘는 이미지는 올릴 수 없어요. 용량을 줄여서 다시 올려주세요'); return; }
   const m = cur(); m.planUrl = URL.createObjectURL(f); m.map = true; render(); toast('평면도를 올렸어요'); $('#addImg').focus();
 }
+// 지도 순서 바꾸기. 보고 있던 지도는 그대로 열어 둔다
+function moveMap(from, to) {
+  const ms = state.maps; to = Math.max(0, Math.min(ms.length - 1, to));
+  if (from === to) return false;
+  const open = cur(), [m] = ms.splice(from, 1); ms.splice(to, 0, m); state.active = ms.indexOf(open);
+  render(); toast(`‘${dn(m)}’ 지도를 ${to + 1}번째로 옮겼어요`); return true;
+}
+let dragFrom = null;
+const clearDrop = () => document.querySelectorAll('.drop-before, .drop-after').forEach(el => el.classList.remove('drop-before', 'drop-after'));
+document.addEventListener('dragstart', e => {
+  const li = e.target.closest?.('[data-mi]'); if (!li) return;
+  dragFrom = +li.dataset.mi; e.dataTransfer.effectAllowed = 'move'; e.dataTransfer.setData('text/plain', String(dragFrom)); li.classList.add('dragging');
+});
+document.addEventListener('dragover', e => {
+  const li = dragFrom !== null && e.target.closest?.('[data-mi]'); if (!li) return;
+  e.preventDefault(); e.dataTransfer.dropEffect = 'move'; clearDrop();
+  const r = li.getBoundingClientRect(); li.classList.add(e.clientY < r.top + r.height / 2 ? 'drop-before' : 'drop-after');
+});
+document.addEventListener('drop', e => {
+  const li = dragFrom !== null && e.target.closest?.('[data-mi]'); if (!li) return;
+  e.preventDefault(); let to = +li.dataset.mi + (li.classList.contains('drop-after') ? 1 : 0); if (dragFrom < to) to--;
+  const from = dragFrom; dragFrom = null; clearDrop(); moveMap(from, to);
+});
+document.addEventListener('dragend', () => { dragFrom = null; clearDrop(); document.querySelectorAll('.dragging').forEach(el => el.classList.remove('dragging')); });
+// 키보드: 손잡이에 포커스를 두고 ↑↓로 한 칸씩
+document.addEventListener('keydown', e => {
+  if (!e.target.dataset?.grip || (e.key !== 'ArrowUp' && e.key !== 'ArrowDown')) return;
+  e.preventDefault(); const i = +e.target.dataset.grip, to = i + (e.key === 'ArrowUp' ? -1 : 1);
+  if (moveMap(i, to)) $(`[data-grip="${Math.max(0, Math.min(state.maps.length - 1, to))}"]`)?.focus();
+});
 document.addEventListener('dragover', e => { if (e.target.closest?.('[data-drop]')) { e.preventDefault(); e.target.closest('[data-drop]').classList.add('over'); } });
 document.addEventListener('dragleave', e => e.target.closest?.('[data-drop]')?.classList.remove('over'));
 document.addEventListener('drop', e => {

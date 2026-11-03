@@ -276,8 +276,12 @@ fieldset { border: 0; margin: 0; padding: 0; min-width: 0; }
 .map-grip { flex: none; width: 18px; height: 32px; padding: 0; margin-left: -6px; border: 0; border-radius: 4px; background: none; color: var(--semantic-border); display: grid; place-items: center; cursor: grab; }
 .map-grip:hover { background: var(--secondary); color: var(--muted-foreground); }
 .map-sortable.dragging { opacity: .4; }
-.map-sortable.drop-before > .item { box-shadow: 0 -3px 0 var(--accent); }
-.map-sortable.drop-after > .item { box-shadow: 0 3px 0 var(--accent); }
+/* 놓을 자리: 카드 사이 틈에 연한 회색 선 (카드 자체엔 표시하지 않음) */
+.items.sub li.map-sortable { position: relative; }
+.map-sortable.drop-before::before, .map-sortable.drop-after::after { content: ""; position: absolute; left: 16px; right: 0; height: 2px; border-radius: 2px; background: var(--border); }
+.map-sortable.drop-before::before { top: -4px; }
+.map-sortable.drop-after::after { bottom: -4px; }
+.map-grip:focus-visible { outline: 2px solid var(--input); outline-offset: 0; }
 .flow-sub .add-map { height: 36px; background: var(--background); }
 .flow-btn .no { width: 24px; height: 24px; border-radius: 8px; flex: none; background: var(--secondary); display: grid; place-items: center; font-size: 12px; font-weight: 700; color: var(--muted-foreground); }
 .flow li[aria-current="step"] > .flow-btn .no { background: var(--accent); color: #fff; }

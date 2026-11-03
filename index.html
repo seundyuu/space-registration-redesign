@@ -472,6 +472,11 @@ const SKY = [['#9cc8f0','#d9c8a6'],['#a9d2f2','#7f9a6a'],['#c3d9ef','#a07d5e'],[
 // 예시 사진 = 가평 휴밸리(숙박) 객실 360 사진
 const NAMES = ['객실 입구', '거실', '침실', '욕실', '실내 수영장'];
 const DEMO_IMG = ['entrance', 'living', 'bedroom', 'bathroom', 'pool'];
+// 예시 사진 원본(IMG_20260702_*)의 EXIF GPS 그대로 — 편집 화면(edit.html)의 같은 사진과 같은 좌표
+const DEMO_LL = {
+  entrance: { lat: 37.835722, lng: 126.735445 }, living: { lat: 37.835917, lng: 126.735388 }, bedroom: { lat: 37.835917, lng: 126.735388 },
+  bathroom: { lat: 37.835917, lng: 126.735388 }, pool: { lat: 37.835945, lng: 126.735362 },
+};
 
 // maps: 방문자 화면의 미니맵 한 장 = 지도 하나. 층·구역 구분 없이 이름은 관리자가 붙인다
 const state = { step: 0, name: '', scale: null, maps: [], active: 0, sel: null, cursor: { x: 50, y: 50 }, vis: 'private', touched: false, nameTouched: false, checked: new Set() };
@@ -1051,7 +1056,7 @@ document.addEventListener('click', e => {
 
   if (t.id === 'addImg') { $('#imgFile').click(); return; }
   if (t.id === 'demoImg') {
-    for (let k = 0; k < 3; k++) { const n = m.images.length; m.images.push({ id: uid++, name: NAMES[n % NAMES.length] + (n >= NAMES.length ? ' ' + (Math.floor(n / NAMES.length) + 1) : ''), pin: null, c: SKY[n % SKY.length], url: `assets/pano/${DEMO_IMG[n % DEMO_IMG.length]}-s.jpg`, gps: n % 3 === 2 ? null : GPS[n % GPS.length], ll: n % 3 === 2 ? null : { lat: 37.8335 - GPS[n % GPS.length][1] * 0.00004, lng: 127.5085 + GPS[n % GPS.length][0] * 0.00006 } }); }
+    for (let k = 0; k < 3; k++) { const n = m.images.length; m.images.push({ id: uid++, name: NAMES[n % NAMES.length] + (n >= NAMES.length ? ' ' + (Math.floor(n / NAMES.length) + 1) : ''), pin: null, c: SKY[n % SKY.length], url: `assets/pano/${DEMO_IMG[n % DEMO_IMG.length]}-s.jpg`, gps: n % 3 === 2 ? null : GPS[n % GPS.length], ll: n % 3 === 2 ? null : DEMO_LL[DEMO_IMG[n % DEMO_IMG.length]] }); }
     const k = autoPin(m); render();
     toast(k ? `예시 사진 3장을 넣었어요. ${k}장은 촬영 위치로 찍혔어요` : '예시 사진 3장을 넣었어요'); $('#addImg').focus(); return;
   }

@@ -517,7 +517,7 @@ const DEMO_LL = {
   bathroom: { lat: 37.835917, lng: 126.735388 }, pool: { lat: 37.835945, lng: 126.735362 },
 };
 
-// maps: 방문자 화면의 미니맵 한 장 = 지도 하나. 층·구역 구분 없이 이름은 관리자가 붙인다
+// maps: 방문자 화면의 지도 한 장 = 지도 하나. 층·구역 구분 없이 이름은 관리자가 붙인다
 const state = { step: 0, name: '', scale: null, maps: [], active: 0, sel: null, cursor: { x: 50, y: 50 }, vis: 'private', touched: false, nameTouched: false, checked: new Set() };
 let uid = 1;
 const $ = (s, el = document) => el.querySelector(s);
@@ -649,7 +649,7 @@ function renderTitle() {
     ['공간 이름과 크기', '크기는 나중에 바꿀 수 있어요.'],
     needsName()
       ? ['지도와 360이미지', '층이나 구역마다 지도를 한 장씩 만들어요. 붙인 이름은 방문자에게 그대로 보여요.']
-      : ['지도와 360이미지', '지도를 올리고 사진마다 위치를 찍으면 미니맵이 만들어져요.'],
+      : ['지도와 360이미지', '지도를 올리고 사진마다 위치를 찍으면 방문자 화면의 지도에 핀이 생겨요.'],
     // 확인하기는 지금 만드는 공간 이름을 제목으로
     [state.name.trim() || '확인하기', '빠진 게 없는지 보고 만들어주세요. 만든 뒤에도 내 공간의 ‘편집’에서 고칠 수 있어요.'],
   ][state.step];
@@ -767,7 +767,7 @@ function vMaps() {
       ${m.map ? `<span class="badge src-badge">✓ ${SRC[m.source]}</span>` : ''}<span class="spacer"></span>
       ${moreMenu(m)}
     </div>
-    ${needsName() && !named(m) ? `<p class="title-hint t-xs ${nameErr ? 'err' : 'muted'}" id="${nameErr ? 'mapNameErr' : 'mapNameHint'}">${nameErr ? '방문자에게 보일 이름을 붙여주세요.' : '이 이름이 방문자 화면에서 미니맵 이름으로 보여요.'}</p>
+    ${needsName() && !named(m) ? `<p class="title-hint t-xs ${nameErr ? 'err' : 'muted'}" id="${nameErr ? 'mapNameErr' : 'mapNameHint'}">${nameErr ? '방문자에게 보일 이름을 붙여주세요.' : '이 이름이 방문자 화면에서 지도 이름으로 보여요.'}</p>
       ${named(m) ? '' : `<div class="name-chips" role="group" aria-label="자주 쓰는 이름">${NAME_HINTS.filter(h => !state.maps.some(x => x.label.trim() === h)).map(h => `<button class="chip" type="button" data-name-hint="${h}">${h}</button>`).join('')}</div>`}` : ''}
     <div class="panel-body">${mapBody(m)}</div>
   </section>`;
@@ -792,7 +792,7 @@ function mapBody(m) {
   // 한 영역엔 질문 하나(One Thing), 기능 이름보다 얻는 것 먼저(Value First), 추천을 붙여 고르기 쉽게(Easy to Answer), 왜 묻는지 한 줄(Explain Why)
   return `<div class="src-sec${needsName() ? ' split' : ''}" role="group" aria-labelledby="srcH">
     <h3 class="t-base-sb src-sec-h" id="srcH">지도를 어떻게 만들까요?</h3>
-    <p class="t-sm muted src-sec-sub">방문자가 보는 미니맵의 바탕이 돼요. 만든 뒤에도 ⋯ 메뉴에서 바꿀 수 있어요.</p>
+    <p class="t-sm muted src-sec-sub">방문자가 보는 지도의 바탕이 돼요. 만든 뒤에도 ⋯ 메뉴에서 바꿀 수 있어요.</p>
     <div class="src-grid">
       <button class="src-card" type="button" data-src="naver">
         <span class="src-ico">${icon('map-pin', 22)}</span>
@@ -1002,7 +1002,7 @@ document.addEventListener('input', e => {
     // 이름을 채우는 즉시 오류 표시를 거둔다
     if (ok && box.classList.contains('invalid')) {
       box.classList.remove('invalid'); e.target.setAttribute('aria-invalid', 'false'); e.target.setAttribute('aria-describedby', 'mapNameHint');
-      hint.id = 'mapNameHint'; hint.className = 'title-hint t-xs muted'; hint.textContent = '이 이름이 방문자 화면에서 미니맵 이름으로 보여요.';
+      hint.id = 'mapNameHint'; hint.className = 'title-hint t-xs muted'; hint.textContent = '이 이름이 방문자 화면에서 지도 이름으로 보여요.';
     }
     const chip = $(`.m-chip[data-mc="${state.active}"]`); if (chip) chip.firstChild.textContent = ok ? v.trim() : '이름 없음';
     renderSidebar(); renderBar();

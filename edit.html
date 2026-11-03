@@ -88,7 +88,7 @@ svg.i { width: 16px; height: 16px; flex: none; fill: none; stroke: currentColor;
 .tab[aria-selected="true"] { background: var(--background); color: var(--foreground); box-shadow: var(--shadow-xs); }
 .tab .cnt { font-size: 12px; color: var(--muted-foreground); font-variant-numeric: tabular-nums; }
 
-/* 미니맵 미리보기 */
+/* 지도 미리보기 */
 .mini { position: relative; aspect-ratio: 16 / 10; border: 1px solid var(--border); border-radius: var(--radius-md); background: #f7f8fa; overflow: hidden; }
 .mini svg.plan, .plan-lg svg.plan { width: 100%; height: 100%; display: block; }
 .nmap-slot { position: absolute; inset: 0; overflow: hidden; }
@@ -327,7 +327,7 @@ svg.zones { position: absolute; inset: 0; width: 100%; height: 100%; pointer-eve
 <dialog id="nameDlg" aria-labelledby="nameT">
   <form method="dialog" id="nameForm">
     <h2 id="nameT">지도 이름 바꾸기</h2>
-    <p class="desc">방문자 화면에서 미니맵 이름으로 보여요.</p>
+    <p class="desc">방문자 화면에서 지도 이름으로 보여요.</p>
     <div class="field"><label for="nameIn">지도 이름</label><input class="input" id="nameIn" maxlength="20" required></div>
     <div class="dlg-acts"><button class="btn btn-outline" type="button" data-close>닫기</button><button class="btn btn-primary" type="submit">저장하기</button></div>
   </form>
@@ -419,7 +419,7 @@ const label = c => c.type === 'move' ? (P(c.target) ? `${j(P(c.target).name, '�
 
 /* ── 네이버 지도: 등록 화면과 같은 Client ID(서비스 URL: seundyuu.github.io, localhost:5173) ──
    편집용 지도는 끌거나 확대하지 않는 고정 프레임(640×400, 줌 19 ≈ 151×94m)으로 띄우고, 칸 크기에 맞춰 축소한다.
-   그래서 핀·구역의 %좌표가 미니맵과 지도 편집 창에서 같은 자리를 가리킨다. 실패하면 예시 평면도로 대신 보여준다 */
+   그래서 핀·구역의 %좌표가 지도 미리보기와 지도 편집 창에서 같은 자리를 가리킨다. 실패하면 예시 평면도로 대신 보여준다 */
 const NAVER_KEY = '1xdhtvv4d4';
 const nv = { status: 'none' };
 const NW = 640, NH = 400;

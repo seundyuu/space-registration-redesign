@@ -171,7 +171,15 @@ fieldset { border: 0; margin: 0; padding: 0; min-width: 0; }
 .ws { display: grid; grid-template-columns: minmax(0, 1.5fr) minmax(300px, 1fr); gap: 24px; align-items: start; }
 .ws-map { position: sticky; top: 16px; }
 .ws-list { display: flex; flex-direction: column; gap: 8px; max-height: 560px; overflow-y: auto; padding-right: 4px; }
-.ws-list-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.ws-list-head { display: flex; align-items: center; gap: 10px; min-height: 36px; }
+.ws-list-head h3 { flex: 1; min-width: 0; }
+.ws-list-head .del-sel { height: 36px; padding: 0 12px; color: var(--destructive); }
+.ws-prog { display: inline-flex; align-items: center; gap: 6px; color: var(--muted-foreground); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.ws-prog i { width: 48px; height: 4px; border-radius: 99px; background: var(--secondary); overflow: hidden; display: block; }
+.ws-prog b { display: block; height: 100%; background: var(--accent); border-radius: inherit; }
+.ws-prog.done { color: var(--accent); font-weight: 600; }
+.row-btn.todo { color: var(--accent); border-color: #c9d8ff; background: var(--accent-bg); }
+.row-btn.todo:hover { background: #e3ecff; }
 .ws-list-head h3 { margin: 0; }
 /* 360이미지 빈 상태: 지도와 같은 높이로 채우고, 할 일은 '사진 고르기' 하나로(예시는 보조) */
 .ws:has(.ws-list.is-empty) { align-items: stretch; }
@@ -370,10 +378,6 @@ tbody th { font-weight: 500; }
 .img-ck:checked, .img-ck:indeterminate { background: var(--primary); border-color: var(--primary); }
 .img-ck:checked::after { content: ""; width: 4px; height: 8px; border: solid var(--primary-foreground); border-width: 0 2px 2px 0; transform: translateY(-1px) rotate(45deg); }
 .img-ck:indeterminate::after { content: ""; width: 8px; height: 2px; background: var(--primary-foreground); }
-.bulk { display: flex; align-items: center; justify-content: space-between; gap: 8px; min-height: 36px; padding: 0 8px; border-bottom: 1px solid var(--border); }
-.bulk .check-row { min-height: 36px; font-size: 13px; }
-.bulk .del-sel { height: 32px; padding: 0 10px; font-size: 13px; color: var(--destructive); }
-.bulk .del-sel:disabled { color: var(--muted-foreground); }
 .row.checked { background: var(--secondary); }
 
 /* 하단 액션바 */
@@ -734,7 +738,7 @@ function vMaps() {
       ${m.map ? `<span class="badge src-badge">✓ ${SRC[m.source]}</span>` : ''}<span class="spacer"></span>
       ${moreMenu(m)}
     </div>
-    ${needsName() ? `<p class="title-hint t-xs ${nameErr ? 'err' : 'muted'}" id="${nameErr ? 'mapNameErr' : 'mapNameHint'}">${nameErr ? '방문자에게 보일 이름을 붙여주세요.' : '이 이름이 방문자 화면에서 미니맵 이름으로 보여요.'}</p>
+    ${needsName() && !named(m) ? `<p class="title-hint t-xs ${nameErr ? 'err' : 'muted'}" id="${nameErr ? 'mapNameErr' : 'mapNameHint'}">${nameErr ? '방문자에게 보일 이름을 붙여주세요.' : '이 이름이 방문자 화면에서 미니맵 이름으로 보여요.'}</p>
       ${named(m) ? '' : `<div class="name-chips" role="group" aria-label="자주 쓰는 이름">${NAME_HINTS.filter(h => !state.maps.some(x => x.label.trim() === h)).map(h => `<button class="chip" type="button" data-name-hint="${h}">${h}</button>`).join('')}</div>`}` : ''}
     <div class="panel-body">${mapBody(m)}</div>
   </section>`;
@@ -819,13 +823,11 @@ function workspace(m) {
         ${s ? `<div class="cross" id="cross" style="left:${isReal(m) ? 50 : c.x}%;top:${isReal(m) ? 50 : c.y}%" aria-hidden="true"></div>` : ''}
       </div>
       <p class="sr-only" id="crossPos" aria-live="polite">${s ? (isReal(m) ? '방향키로 지도를 옮겨 가운데 십자선에 맞추고 Enter로 찍어요.' : `가로 ${Math.round(c.x)}%, 세로 ${Math.round(c.y)}%`) : ''}</p>
-      <p class="map-legend t-xs muted" style="margin:8px 0 0">${m.source === 'naver' ? '<span><i style="background:var(--accent)"></i>자동으로 찍힘</span>' : ''}<span><i style="box-shadow:inset 0 0 0 2px var(--accent)"></i>직접 찍음</span><span>· 구역 그리기는 공간을 만든 뒤 내 공간의 ‘편집’에서 할 수 있어요.</span></p>
+      <p class="map-legend t-xs muted" style="margin:8px 0 0">${m.source === 'naver' ? '<span><i style="background:var(--accent)"></i>자동으로 찍힘</span>' : ''}<span><i style="box-shadow:inset 0 0 0 2px var(--accent)"></i>직접 찍음</span></p>
     </div>
     <div class="ws-list${m.images.length ? '' : ' is-empty'}" aria-labelledby="imgH">
-      <div class="ws-list-head"><h3 id="imgH" class="t-base-sb">360이미지${m.images.length ? ` <span class="t-sm muted" style="font-weight:400">${m.images.length}장</span>` : ''}</h3>
-        ${m.images.length ? `<button class="btn btn-outline" type="button" id="addImg">${icon('plus', 16)}추가</button>` : ''}</div>
-      ${m.images.length ? `<p class="t-xs ${s ? 'sel-guide' : 'muted'}" id="wsGuide">${guide(m)}</p>
-        ${bulkBar(m)}
+      ${m.images.length ? listHead(m) : '<div class="ws-list-head"><h3 id="imgH" class="t-base-sb">360이미지</h3></div>'}
+      ${m.images.length ? `<p class="t-xs ${s ? 'sel-guide' : todo.length ? 'muted' : 'ok-text'}" id="wsGuide">${guide(m)}</p>
         ${todo.length ? `<h4 class="group-h">위치를 찍어야 해요 · ${todo.length}</h4><ul class="rows">${todo.map(row).join('')}</ul>` : ''}
         ${ok.length ? `<h4 class="group-h">위치가 찍힌 사진 · ${ok.length}</h4><ul class="rows">${ok.map(row).join('')}</ul>` : ''}`
       : `<div class="drop img-empty" data-drop="img">
@@ -840,14 +842,19 @@ function workspace(m) {
   </div>`;
 }
 // 전체 선택 + 선택 삭제. 체크한 사진은 지금 보고 있는 지도 안에서만 유지한다
-function bulkBar(m) {
+// 목록 머리 한 줄(어드민 도구라 세로 공간을 아낀다): 전체 선택 · 360이미지 n장 · 위치 진행률 · 추가.
+// 사진을 고르면 같은 줄이 'n장 선택됨 · 선택 삭제'로 바뀐다(필요할 때만 보이는 도구)
+function listHead(m) {
   const ids = new Set(m.images.map(i => i.id));
   state.checked = new Set([...state.checked].filter(id => ids.has(id)));
-  const n = state.checked.size, all = n === m.images.length;
-  return `<div class="bulk">
-    <label class="check-row"><input class="img-ck" type="checkbox" id="ckAll"${all ? ' checked' : ''} data-some="${n && !all ? 1 : ''}">${n ? `${n}장 선택됨` : '전체 선택'}</label>
-    <button class="btn btn-ghost del-sel" type="button" id="delSel"${n ? '' : ' disabled'}>선택 삭제</button>
-  </div>`;
+  const n = state.checked.size, len = m.images.length, all = n === len, p = placed(m);
+  return `<div class="ws-list-head">
+      <input class="img-ck" type="checkbox" id="ckAll"${all ? ' checked' : ''} data-some="${n && !all ? 1 : ''}" aria-label="사진 전체 선택">
+      <h3 id="imgH" class="t-base-sb">${n ? `${n}장 선택됨` : `360이미지 <span class="t-sm muted" style="font-weight:400">${len}장</span>`}</h3>
+      ${n ? `<button class="btn btn-ghost del-sel" type="button" id="delSel">선택 삭제</button>`
+          : `<span class="ws-prog t-xs${p === len ? ' done' : ''}" title="위치를 찍은 사진">위치 ${p}/${len}<i aria-hidden="true"><b style="width:${p / len * 100}%"></b></i></span>
+             <button class="btn btn-outline" type="button" id="addImg">${icon('plus', 16)}추가</button>`}
+    </div>`;
 }
 // 사진 한 줄: 번호(지도 핀과 같은 번호) · 이름 · 상태 텍스트 · 찍기 · 삭제
 function row(img) {
@@ -858,7 +865,7 @@ function row(img) {
     <input class="img-ck" type="checkbox" data-ck="${img.id}"${ck ? ' checked' : ''} aria-label="${esc(img.name)} 선택">
     <span class="row-th" style="background:${img.url ? `url('${img.url}') center/cover` : `linear-gradient(180deg,${img.c[0]} 0 55%,${img.c[1]} 55%)`}" aria-hidden="true"><b>${n}</b></span>
     <span class="row-main"><span class="t-sm-sb row-name">${esc(img.name)}</span><span class="t-xs ${img.pin ? 'ok-text' : 'muted'}">${status}</span>${coach ? `<span class="coach-tip t-xs">지도에서 ${n}번 위치가 맞는지 확인해 보세요</span>` : ''}</span>
-    <button class="btn ${sel ? 'btn-primary' : 'btn-outline'} row-btn" type="button" data-sel="${img.id}" aria-pressed="${sel}" aria-label="${esc(img.name)} 위치 ${sel ? '고르는 중, 취소' : img.pin ? '바꾸기' : '찍기'}">${sel ? '고르는 중' : img.pin ? '바꾸기' : '찍기'}</button>
+    <button class="btn ${sel ? 'btn-primary' : 'btn-outline'} row-btn${!sel && !img.pin ? ' todo' : ''}" type="button" data-sel="${img.id}" aria-pressed="${sel}" aria-label="${esc(img.name)} 위치 ${sel ? '고르는 중, 취소' : img.pin ? '바꾸기' : '찍기'}">${sel ? '고르는 중' : img.pin ? '바꾸기' : '찍기'}</button>
     <button class="btn btn-ghost icon-btn row-del" type="button" data-del="${img.id}" aria-label="${esc(img.name)} 삭제"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6"/></svg></button>
   </li>`;
 }

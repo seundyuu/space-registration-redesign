@@ -358,13 +358,25 @@ tbody tr:hover { background: rgba(245,245,245,.5); }
 tbody th { font-weight: 500; }
 .num { text-align: right; font-variant-numeric: tabular-nums; }
 /* shadcn Progress: h-2 rounded-full bg-primary/20 — 미배치 구간은 빗금으로 색 외 구분 */
-.bars { display: flex; flex-direction: column; gap: 14px; }
-.bar { display: grid; grid-template-columns: 56px minmax(0, 1fr) 80px; gap: 12px; align-items: center; }
-.track { height: 12px; border-radius: 999px; background: rgba(23,23,23,.08); display: flex; overflow: hidden; }
-.fill-ok { background: var(--accent); }
-.fill-no { background: repeating-linear-gradient(45deg, var(--semantic-border) 0 2px, transparent 2px 6px); }
-.legend-row { display: flex; gap: 16px; margin-top: 12px; flex-wrap: wrap; }
-.sw { width: 12px; height: 12px; border-radius: 3px; display: inline-block; vertical-align: -1px; margin-right: 6px; border: 1px solid var(--semantic-border); }
+.rv-sum { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; margin: 0 0 16px; }
+.rv-sum > div { background: var(--sidebar); border-radius: var(--radius-lg); padding: 14px 16px; }
+.rv-sum dt { font-size: 12px; line-height: 16px; color: var(--muted-foreground); }
+.rv-sum dd { margin: 4px 0 0; font-size: 20px; line-height: 28px; font-weight: 700; font-variant-numeric: tabular-nums; }
+.rv-sum dd span { font-size: 14px; font-weight: 500; color: var(--muted-foreground); }
+.rv-sum dd.ok { color: var(--accent); }
+.rv-list { list-style: none; margin: 0; padding: 0; border-top: 1px solid var(--border); }
+.rv-row { display: grid; grid-template-columns: 24px minmax(0, 1fr) 160px 110px auto; align-items: center; gap: 16px; padding: 12px 0; border-bottom: 1px solid var(--border); }
+.rv-no { width: 24px; height: 24px; border-radius: 6px; background: var(--secondary); display: grid; place-items: center; font-size: 12px; font-weight: 700; color: var(--muted-foreground); }
+.rv-main { display: flex; flex-direction: column; min-width: 0; }
+.rv-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.rv-prog { display: flex; align-items: center; gap: 8px; font-variant-numeric: tabular-nums; color: var(--muted-foreground); }
+.rv-prog i { flex: 1; height: 6px; border-radius: 99px; background: var(--secondary); overflow: hidden; display: block; }
+.rv-prog b { display: block; height: 100%; background: var(--accent); border-radius: inherit; }
+.rv-state { font-weight: 600; color: var(--muted-foreground); }
+.rv-state.ok { color: var(--accent); }
+.rv-go { height: 32px; padding: 0 12px; font-size: 13px; }
+.rv-cap { margin: 10px 0 0; }
+@media (max-width: 900px) { .rv-row { grid-template-columns: 24px minmax(0, 1fr) auto; row-gap: 8px; } .rv-go { grid-column: 3; grid-row: 1; } .rv-prog { grid-column: 2; grid-row: 2; } .rv-state { grid-column: 3; grid-row: 2; justify-self: end; } .rv-sum dd { font-size: 17px; } }
 .radio-row { display: flex; align-items: flex-start; gap: 12px; padding: 14px 0; cursor: pointer; }
 /* shadcn RadioGroupItem: size-4 rounded-full border-input shadow-xs, 선택 시 primary 점 */
 .radio-row input { appearance: none; width: 16px; height: 16px; margin: 2px 0 0; flex: none; border: 1px solid var(--input); border-radius: 999px; box-shadow: var(--shadow-xs); display: grid; place-items: center; cursor: pointer; }
@@ -461,7 +473,7 @@ dialog p { margin: 0 0 16px; color: var(--muted-foreground); }
       <a class="btn btn-ghost icon-btn back-btn" href="spaces.html" id="backBtn" aria-label="내 공간으로 돌아가기"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.25" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m12 19-7-7 7-7"/><path d="M19 12H5"/></svg></a>
       <span class="t-sm-sb">새 공간 만들기</span>
       <span class="spacer"></span>
-      <button class="btn btn-outline btn-flat" type="button" id="saveDraft">임시 저장</button>
+      <button class="btn btn-outline btn-flat" type="button" id="saveDraft">임시 저장하기</button>
     </div>
     <div class="stepform" id="content" tabindex="-1">
       <nav aria-label="등록 단계"><ol class="stepper" id="stepper"></ol></nav>
@@ -479,7 +491,7 @@ dialog p { margin: 0 0 16px; color: var(--muted-foreground); }
   <h2 id="dlgT">이 사진을 삭제할까요?</h2>
   <p id="dlgD" class="t-sm"></p>
   <div class="dlg-acts">
-    <button class="btn btn-outline" type="button" id="dlgCancel">취소</button>
+    <button class="btn btn-outline" type="button" id="dlgCancel">닫기</button>
     <button class="btn btn-destructive" type="button" id="dlgOk">삭제하기</button>
   </div>
 </dialog>
@@ -642,7 +654,7 @@ function mapsSub() {
           <span class="mark ${m.images.length && placed(m) === m.images.length ? 'on' : 'off'}">${icon('photo-circle', 16)}<span>${placed(m)}/${m.images.length}</span></span>
         </span>
       </button></li>`).join('')}</ul>
-    ${isSingle() && n === 1 ? '' : `<button class="btn btn-outline add-map" type="button" id="addMapItem">${icon('plus', 16)}지도 추가</button>`}
+    ${isSingle() && n === 1 ? '' : `<button class="btn btn-outline add-map" type="button" id="addMapItem">${icon('plus', 16)}지도 추가하기</button>`}
   </div>`;
 }
 function renderSidebar() {
@@ -729,7 +741,7 @@ function vMaps() {
   const m = cur(), i = state.active;
   const nameErr = state.nameTouched && !named(m);
   return `
-  ${needsName() ? `<nav class="m-maps" aria-label="지도 목록">${state.maps.map((x, k) => `<button class="m-chip" type="button" data-map="${k}" data-mc="${k}"${k === i ? ' aria-current="true"' : ''}>${esc(named(x) ? dn(x, k) : '이름 없음')}<span class="cnt">${placed(x)}/${x.images.length}</span></button>`).join('')}<button class="m-chip add" type="button" data-add-map>+ 지도 추가</button></nav>` : ''}
+  ${needsName() ? `<nav class="m-maps" aria-label="지도 목록">${state.maps.map((x, k) => `<button class="m-chip" type="button" data-map="${k}" data-mc="${k}"${k === i ? ' aria-current="true"' : ''}>${esc(named(x) ? dn(x, k) : '이름 없음')}<span class="cnt">${placed(x)}/${x.images.length}</span></button>`).join('')}<button class="m-chip add" type="button" data-add-map>+ 지도 추가하기</button></nav>` : ''}
   <section class="panel" aria-labelledby="${needsName() ? 'mapName' : 'mapH'}">
     <div class="panel-head">
       ${needsName() ? `<label class="title-edit${named(m) ? '' : ' empty'}${nameErr ? ' invalid' : ''}">
@@ -749,7 +761,7 @@ function vMaps() {
 function moreMenu(m) {
   const i = state.active, n = state.maps.length, items = [];
   if (m.source) items.push(`<button type="button" role="menuitem" tabindex="-1" data-act="src">지도 방식 바꾸기</button>`);
-  if (n > 1) items.push(`<span class="menu-sep" role="separator"></span><button type="button" role="menuitem" tabindex="-1" data-act="del" class="danger">지도 삭제</button>`);
+  if (n > 1) items.push(`<span class="menu-sep" role="separator"></span><button type="button" role="menuitem" tabindex="-1" data-act="del" class="danger">지도 삭제하기</button>`);
   if (!items.length) return '';
   return `<div class="menu-wrap">
     <button class="btn btn-outline icon-btn" type="button" id="moreBtn" aria-haspopup="menu" aria-expanded="false" aria-controls="moreMenu" aria-label="이 지도 더보기">
@@ -844,7 +856,7 @@ function workspace(m) {
   </div>`;
 }
 // 목록 머리 한 줄(어드민 도구라 세로 공간을 아낀다): 전체 선택 · 360이미지 n장 · 위치 진행률 · 추가.
-// 사진을 고르면 같은 줄이 'n장 선택됨 · 선택 삭제'로 바뀐다(필요할 때만 보이는 도구)
+// 사진을 고르면 같은 줄이 'n장 선택됨 · 삭제하기'로 바뀐다(필요할 때만 보이는 도구)
 function listHead(m) {
   const ids = new Set(m.images.map(i => i.id));
   state.checked = new Set([...state.checked].filter(id => ids.has(id)));
@@ -852,9 +864,9 @@ function listHead(m) {
   return `<div class="ws-list-head">
       <input class="img-ck" type="checkbox" id="ckAll"${all ? ' checked' : ''} data-some="${n && !all ? 1 : ''}" aria-label="사진 전체 선택">
       <h3 id="imgH" class="t-base-sb">${n ? `${n}장 선택됨` : `360이미지 <span class="t-sm muted" style="font-weight:400">${len}장</span>`}</h3>
-      ${n ? `<button class="btn btn-ghost del-sel" type="button" id="delSel">선택 삭제</button>`
+      ${n ? `<button class="btn btn-ghost del-sel" type="button" id="delSel">삭제하기</button>`
           : `<span class="ws-prog t-xs${p === len ? ' done' : ''}" title="위치를 찍은 사진">위치 ${p}/${len}<i aria-hidden="true"><b style="width:${p / len * 100}%"></b></i></span>
-             <button class="btn btn-outline" type="button" id="addImg">${icon('plus', 16)}추가</button>`}
+             <button class="btn btn-outline" type="button" id="addImg">${icon('plus', 16)}추가하기</button>`}
     </div>`;
 }
 // 사진 한 줄: 번호(지도 핀과 같은 번호) · 이름 · 상태 텍스트 · 찍기 · 삭제
@@ -871,28 +883,29 @@ function row(img) {
   </li>`;
 }
 
+// 확인하기: 요약 한 줄 + 지도 목록 하나(차트와 표가 같은 내용을 두 번 보여주던 것을 합침 — One Thing).
+// 목록은 위에서부터 방문자에게 보이는 순서, 줄마다 위치 진행률과 바로 고치러 가기
 function vReview() {
-  const max = Math.max(1, ...state.maps.map(m => m.images.length));
+  const tot = state.maps.reduce((n, m) => n + m.images.length, 0), pl = state.maps.reduce((n, m) => n + placed(m), 0);
   return `
-  <section class="panel" aria-labelledby="chH">
-    <div class="panel-head"><h2 id="chH" class="t-base-sb">지도별로 위치를 찍은 사진</h2></div>
+  <section class="panel" aria-labelledby="rvH">
+    <div class="panel-head"><h2 id="rvH" class="t-base-sb">만들 내용</h2></div>
     <div class="panel-body">
-      <div class="bars" role="img" aria-label="지도별로 위치를 찍은 사진 수. 아래 표와 같은 내용이에요.">
-        ${state.maps.map((m, i) => { const p = placed(m), u = m.images.length - p; return `<div class="bar t-sm"><span class="t-sm-sb" style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(dn(m, i))}</span>
-          <div class="track"><div class="fill-ok" style="width:${p / max * 100}%"></div><div class="fill-no" style="width:${u / max * 100}%"></div></div>
-          <span class="num">${p}/${m.images.length}장</span></div>`; }).join('')}
-      </div>
-      <div class="legend-row t-xs muted" aria-hidden="true"><span><i class="sw" style="background:var(--accent);border-color:var(--accent)"></i>위치 있음 (채움)</span><span><i class="sw" style="background:repeating-linear-gradient(45deg,var(--semantic-border) 0 2px,transparent 2px 6px)"></i>위치 없음 (빗금)</span></div>
+      <dl class="rv-sum">
+        <div><dt>지도</dt><dd>${state.maps.length}장</dd></div>
+        <div><dt>360이미지</dt><dd>${tot}장</dd></div>
+        <div><dt>위치를 찍은 사진</dt><dd class="${tot && pl === tot ? 'ok' : ''}">${pl}<span>/${tot}장</span></dd></div>
+      </dl>
+      <ol class="rv-list" aria-label="지도 목록. 위에서부터 방문자에게 보이는 순서예요">${state.maps.map((m, i) => { const p = placed(m), n = m.images.length, ok = done(m);
+        return `<li class="rv-row">
+          <span class="rv-no" aria-hidden="true">${i + 1}</span>
+          <span class="rv-main"><span class="t-sm-sb rv-name">${esc(dn(m, i))}</span><span class="t-xs muted">${m.map ? SRC[m.source] : '지도 없음'} · 360이미지 ${n}장</span></span>
+          <span class="rv-prog"><i aria-hidden="true"><b style="width:${n ? p / n * 100 : 0}%"></b></i><span class="t-xs">위치 ${p}/${n}</span></span>
+          <span class="rv-state t-xs${ok ? ' ok' : ''}">${ok ? '다 채웠어요' : !m.map ? '지도가 없어요' : !n ? '사진이 없어요' : `${n - p}장 남았어요`}</span>
+          <button class="btn btn-outline rv-go" type="button" data-goto="${i}" aria-label="${esc(dn(m, i))} 수정하기">수정하기</button>
+        </li>`; }).join('')}</ol>
+      <p class="t-xs muted rv-cap">위에서부터 방문자에게 보이는 순서예요.</p>
     </div>
-  </section>
-  <section class="panel tbl-wrap">
-    <table>
-      <caption>지도별로 채운 내용 · 위에서부터 방문자에게 보이는 순서예요</caption>
-      <thead><tr><th scope="col">지도 이름</th><th scope="col">지도</th><th scope="col" class="num">360이미지</th><th scope="col" class="num">위치 찍은 사진</th><th scope="col">상태</th><th scope="col"><span class="sr-only">작업</span></th></tr></thead>
-      <tbody>${state.maps.map((m, i) => `<tr><th scope="row">${esc(dn(m, i))}</th><td>${m.map ? SRC[m.source] : '없음'}</td><td class="num">${m.images.length}장</td><td class="num">${placed(m)} / ${m.images.length}</td>
-        <td><span class="badge${done(m) ? ' ok' : ''}">${done(m) ? '✓ 완료' : '채우는 중'}</span></td>
-        <td class="num"><button class="btn btn-ghost" type="button" data-goto="${i}">${esc(dn(m, i))} 수정</button></td></tr>`).join('')}</tbody>
-    </table>
   </section>
   <fieldset class="panel" style="padding:8px 20px">
     <legend class="sr-only">공개 설정</legend>

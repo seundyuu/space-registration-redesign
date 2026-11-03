@@ -316,7 +316,7 @@ svg.zones { position: absolute; inset: 0; width: 100%; height: 100%; pointer-eve
 <dialog id="alert" aria-labelledby="alertT" aria-describedby="alertD">
   <h2 id="alertT"></h2>
   <p class="desc" id="alertD"></p>
-  <div class="dlg-acts"><button class="btn btn-outline" type="button" data-close>취소</button><button class="btn btn-destructive" type="button" id="alertOk"></button></div>
+  <div class="dlg-acts"><button class="btn btn-outline" type="button" data-close>닫기</button><button class="btn btn-destructive" type="button" id="alertOk"></button></div>
 </dialog>
 <dialog id="pickDlg" aria-labelledby="pickT">
   <h2 id="pickT">어떤 콘텐츠를 넣을까요?</h2>
@@ -329,7 +329,7 @@ svg.zones { position: absolute; inset: 0; width: 100%; height: 100%; pointer-eve
     <h2 id="nameT">지도 이름 바꾸기</h2>
     <p class="desc">방문자 화면에서 미니맵 이름으로 보여요.</p>
     <div class="field"><label for="nameIn">지도 이름</label><input class="input" id="nameIn" maxlength="20" required></div>
-    <div class="dlg-acts"><button class="btn btn-outline" type="button" data-close>취소</button><button class="btn btn-primary" type="submit">저장</button></div>
+    <div class="dlg-acts"><button class="btn btn-outline" type="button" data-close>닫기</button><button class="btn btn-primary" type="submit">저장하기</button></div>
   </form>
 </dialog>
 <dialog id="mapDlg" class="big" aria-labelledby="mapT"></dialog>
@@ -507,22 +507,22 @@ function renderSideInner() {
   keepFocus(() => { $('#side').innerHTML = `
     <section class="side-sec" aria-labelledby="mapsH">
       <div class="sec-h"><h2 id="mapsH">지도</h2>
-        <button class="btn btn-ghost btn-sm" type="button" id="addMap" data-k="addMap">${ic('plus', 14)}지도 추가</button></div>
+        <button class="btn btn-ghost btn-sm" type="button" id="addMap" data-k="addMap">${ic('plus', 14)}지도 추가하기</button></div>
       <div class="tabs-row">
         <div class="tabs" role="tablist" aria-label="지도">${tabs}</div>
         <div class="menu-wrap">
           <button class="btn btn-outline icon-btn" type="button" aria-haspopup="menu" aria-expanded="false" data-menu="map" data-k="mapMore" aria-label="${esc(map.label)} 지도 더보기">${ic('more')}</button>
           <div class="menu" role="menu" hidden>
-            <button role="menuitem" type="button" data-act="editMap">${ic('map')}지도 편집</button>
+            <button role="menuitem" type="button" data-act="editMap">${ic('map')}지도 편집하기</button>
             <button role="menuitem" type="button" data-act="zoneMap">${ic('area')}구역 그리기</button>
             <button role="menuitem" type="button" data-act="renameMap">${ic('pencil')}이름 바꾸기</button>
             <div class="menu-sep" role="separator"></div>
-            <button role="menuitem" type="button" class="danger" data-act="delMap" ${S.maps.length < 2 ? 'aria-disabled="true"' : ''}>지도 삭제</button>
+            <button role="menuitem" type="button" class="danger" data-act="delMap" ${S.maps.length < 2 ? 'aria-disabled="true"' : ''}>지도 삭제하기</button>
           </div>
         </div>
       </div>
       <div class="mini">${mapSlot('miniSlot')}${zonesSvg(map.zones || [])}${mapBadge()}${list.filter(p => p.pin).map(p => `<span class="dot${p.id === S.cur ? ' cur' : ''}" style="left:${p.pin.x}%;top:${p.pin.y}%">${idx(p)}</span>`).join('')}</div>
-      <button class="btn btn-outline" type="button" data-act="editMap" data-k="editMap">${ic('map')}지도 편집 · 위치 찍기</button>
+      <button class="btn btn-outline" type="button" data-act="editMap" data-k="editMap">${ic('map')}지도 편집하기</button>
     </section>
     <section class="side-sec" aria-labelledby="photosH">
       ${todoP.length ? `<div class="todo">
@@ -532,7 +532,7 @@ function renderSideInner() {
         <button class="btn btn-outline btn-sm" type="button" id="todoBtn" data-k="todo" aria-pressed="${S.filter === 'todo'}">${S.filter === 'todo' ? '전체 보기' : '할 일만 보기'}</button>
       </div>` : ''}
       <div class="sec-h"><h2 id="photosH">360 사진 <span class="muted" style="font-weight:500">${list.length}</span></h2>
-        <button class="btn btn-ghost btn-sm" type="button" data-k="upload" id="upload">${ic('upload', 14)}추가</button></div>
+        <button class="btn btn-ghost btn-sm" type="button" data-k="upload" id="upload">${ic('upload', 14)}추가하기</button></div>
       ${list.length > 4 ? `<label class="search"><span class="sr-only">사진 찾기</span>${ic('search')}<input class="input" id="q" data-k="q" placeholder="사진 이름으로 찾기" value="${esc(S.q)}"></label>` : ''}
       ${shown.length ? `<ul class="rows">${shown.map(p => {
         const t = todoOf(p);
@@ -550,7 +550,7 @@ function renderSideInner() {
               <button role="menuitem" type="button" data-act="movePhoto" data-pid="${p.id}">${ic('map')}다른 지도로 옮기기</button>
               <button role="menuitem" type="button" data-act="cover" data-pid="${p.id}" ${p.id === S.cover ? 'aria-disabled="true"' : ''}>${ic('image')}${p.id === S.cover ? '지금 대표 사진이에요' : '대표 사진으로 정하기'}</button>
               <div class="menu-sep" role="separator"></div>
-              <button role="menuitem" type="button" class="danger" data-act="delPhoto" data-pid="${p.id}">사진 삭제</button>
+              <button role="menuitem" type="button" class="danger" data-act="delPhoto" data-pid="${p.id}">사진 삭제하기</button>
             </div>
           </div></li>`; }).join('')}</ul>`
         : `<p class="empty t-sm">${S.filter === 'todo' ? '이 지도는 할 일이 없어요.' : S.q ? '찾는 사진이 없어요.' : '아직 사진이 없어요.'}</p>`}
@@ -631,7 +631,7 @@ function renderPanel() {
   keepFocus(() => { $('#panel').innerHTML = `
     <section class="panel-sec" aria-labelledby="cH">
       <div class="sec-h"><h2 id="cH" class="t-sm-sb" style="margin:0;flex:1">이 사진의 콘텐츠 <span class="muted" style="font-weight:500">${p.c.length}</span></h2>
-        <button class="btn btn-primary btn-sm" type="button" id="addC" data-k="addC">${ic('plus', 14)}콘텐츠 추가</button></div>
+        <button class="btn btn-primary btn-sm" type="button" id="addC" data-k="addC">${ic('plus', 14)}콘텐츠 추가하기</button></div>
       ${p.c.length ? `<ul class="items">${p.c.map(x => `<li class="item" ${x.id === S.sel ? 'aria-current="true"' : ''}>
           <button class="item-go" type="button" data-sel="${x.id}" data-k="sel${x.id}"><span class="item-ico">${ic(TYPES[x.type].icon)}</span>
             <span class="item-main"><b>${esc(label(x))}</b><span class="t-xs muted">${TYPES[x.type].name}</span></span></button>
@@ -665,7 +665,7 @@ function detail(c, others) {
     <div class="field"><span class="lab">위치</span>
       <button class="btn btn-outline" type="button" id="rePlace" data-k="rePlace">${ic('pin')}360 보기에서 다시 놓기</button></div>
     ${c.type === 'move' && c.target ? `<button class="btn btn-outline" type="button" id="goTarget" data-k="goTarget">${esc(P(c.target).name)} 사진으로 가기</button>` : ''}
-    <button class="btn btn-ghost danger-link" type="button" id="delC" data-k="delC">이 콘텐츠 삭제</button>
+    <button class="btn btn-ghost danger-link" type="button" id="delC" data-k="delC">이 콘텐츠 삭제하기</button>
   </div>`;
 }
 
@@ -816,7 +816,7 @@ function renderMapEditor() {
   const opt = sel => `<option value="">정하지 않음</option>${list.map(p => `<option value="${p.id}" ${p.id === sel ? 'selected' : ''}>${esc(p.name)}</option>`).join('')}`;
   const selP = M.sel && P(M.sel), zone = M.mode === 'zone';
   const guide = zone
-    ? (M.draft.length ? `꼭짓점 ${M.draft.length}개. 계속 눌러 모양을 만들고, 첫 점을 누르거나 <b>구역 완성</b>을 누르면 끝나요.` : '구역의 꼭짓점을 차례로 눌러주세요. 키보드는 방향키로 옮기고 Enter로 찍어요.')
+    ? (M.draft.length ? `꼭짓점 ${M.draft.length}개. 계속 눌러 모양을 만들고, 첫 점을 누르거나 <b>구역 완성하기</b>를 누르면 끝나요.` : '구역의 꼭짓점을 차례로 눌러주세요. 키보드는 방향키로 옮기고 Enter로 찍어요.')
     : selP ? `<span class="sel-guide">‘${esc(selP.name)}’</span> 위치를 지도에서 눌러주세요. 키보드는 방향키로 옮기고 Enter로 찍어요.` : '오른쪽 목록에서 ‘찍기’를 누르고 지도에서 위치를 골라주세요.';
   const pinRow = p => `<li class="row" ${p.id === M.sel ? 'aria-current="true"' : ''}>
     <span class="row-go" style="cursor:default"><span class="th" style="${thumbBg(p)}"><b>${idx(p)}</b></span>
@@ -840,7 +840,7 @@ function renderMapEditor() {
           </div>
           ${zone && M.draft.length ? `<span class="spacer"></span>
             <button class="btn btn-ghost btn-sm" type="button" id="zBack" data-k="zBack">마지막 점 지우기</button>
-            <button class="btn btn-primary btn-sm" type="button" id="zDone" data-k="zDone" ${M.draft.length < 3 ? 'disabled' : ''}>구역 완성</button>` : ''}
+            <button class="btn btn-primary btn-sm" type="button" id="zDone" data-k="zDone" ${M.draft.length < 3 ? 'disabled' : ''}>구역 완성하기</button>` : ''}
         </div>
         <p class="t-sm" style="margin:0;min-height:20px" aria-live="polite">${guide}</p>
         ${(() => { const lap = list.filter(p => overlapOf(p, M.pins)); return lap.length ? `<p class="lap-note t-xs">${ic('alert', 14)}<span>${lap.map(p => esc(p.name)).join('·')} ${lap.length}장이 촬영 위치(GPS) 기준으로 같은 자리에 찍혔어요. 실내에선 GPS가 정확하지 않으니 ‘바꾸기’로 실제 방 위치에 옮겨주세요.</span></p>` : ''; })()}
@@ -866,7 +866,7 @@ function renderMapEditor() {
       </div>
     </div>
     <div class="big-foot"><span class="t-xs muted">${list.filter(p => M.pins[p.id]).length} / ${list.length}장 위치 찍힘${M.zones.length ? ` · 구역 ${M.zones.length}개` : ''}</span><span class="spacer"></span>
-      <button class="btn btn-outline" type="button" data-close>취소</button><button class="btn btn-primary" type="button" id="mSave">저장</button></div>`; });
+      <button class="btn btn-outline" type="button" data-close>닫기</button><button class="btn btn-primary" type="button" id="mSave">저장하기</button></div>`; });
   const d = $('#mapDlg');
   mountNmap('mSlot', 'editor', map);
   d.querySelectorAll('[data-close]').forEach(b => b.onclick = () => d.close());

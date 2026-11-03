@@ -784,6 +784,8 @@ function vMaps() {
 // 자주 쓰지 않는 동작(방식·삭제)은 더보기 메뉴로 접는다(힉). 순서는 사이드바에서 끌어서 바꾼다 — shadcn DropdownMenu
 function moreMenu(m) {
   const i = state.active, n = state.maps.length, items = [];
+  // 네이버 지도에서 직접 옮긴 핀이 있을 때만: 처음 GPS로 찍힌 상태로 되돌리기
+  if (m.source === 'naver' && m.images.some(x => x.pin && !x.auto)) items.push(`<button type="button" role="menuitem" tabindex="-1" data-act="gps">GPS 위치로 되돌리기</button>`);
   if (m.source) items.push(`<button type="button" role="menuitem" tabindex="-1" data-act="src">지도 방식 바꾸기</button>`);
   if (n > 1) items.push(`<span class="menu-sep" role="separator"></span><button type="button" role="menuitem" tabindex="-1" data-act="del" class="danger">지도 삭제하기</button>`);
   if (!items.length) return '';
@@ -1182,6 +1184,15 @@ function menuAct(act) {
   const m = cur(), i = state.active, ms = state.maps;
   toggleMenu(false);
   if (act === 'src') { m.map = false; m.source = null; m.images.forEach(x => { x.pin = null; x.auto = false; }); state.sel = null; render(); $('[data-src="naver"]').focus(); return; }
+  if (act === 'gps') {
+    const n = m.images.filter(x => x.pin && !x.auto).length;
+    confirmBox('GPS 위치로 되돌릴까요?', `직접 찍은 위치 ${n}개가 지워지고, 촬영 위치가 있는 사진은 GPS 위치로 다시 찍혀요.`, $('#moreBtn'), () => {
+      m.images.forEach(x => { if (x.pin && !x.auto) x.pin = null; });
+      const k = autoPin(m); state.sel = null;
+      render(); toast(k ? `${k}장을 GPS 위치로 되돌렸어요` : '직접 찍은 위치를 지웠어요'); $('#moreBtn')?.focus();
+    }, '되돌리기', false);
+    return;
+  }
   if (act === 'del') {
     confirmBox('이 지도를 삭제할까요?', `‘${dn(m)}’ 지도와 360이미지 ${m.images.length}장이 같이 지워져요.`, $('#moreBtn'), () => {
       ms.splice(i, 1); state.active = Math.max(0, i - 1); state.sel = null;

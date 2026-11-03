@@ -401,6 +401,29 @@ const S = {
   cover: 1, mapId: 1, cur: 1, sel: null, filter: 'all', q: '', placing: null, saving: false,
 };
 let uid = 100;
+// 등록 화면에서 '촬영 위치로 구역 자동 잡기'를 켜고 만들었으면, 사진 위치로 구역을 먼저 잡아 둔다.
+// 등록 화면과 같은 방식: 가까운 사진끼리 묶고, 묶음을 감싸는 다각형. 이름·모양은 지도 편집의 구역 그리기에서 고친다
+function hull(P) {
+  const p = [...P].sort((a, b) => a.x - b.x || a.y - b.y), cr = (o, a, b) => (a.x - o.x) * (b.y - o.y) - (a.y - o.y) * (b.x - o.x);
+  const lo = [], up = [];
+  for (const q of p) { while (lo.length > 1 && cr(lo[lo.length - 2], lo[lo.length - 1], q) <= 0) lo.pop(); lo.push(q); }
+  for (const q of p.reverse()) { while (up.length > 1 && cr(up[up.length - 2], up[up.length - 1], q) <= 0) up.pop(); up.push(q); }
+  return lo.slice(0, -1).concat(up.slice(0, -1));
+}
+function autoZones(pins) {
+  // 지도 프레임 640×400(16:10)이라 가로 %를 1.6배 해서 거리를 맞춘다. 22 = 같은 구역으로 볼 거리, 10 = 사진 둘레 여백(작은 미니맵에서도 핀보다 넓게)
+  const gs = pins.map(p => [{ x: p.x * 1.6, y: p.y }]);
+  for (let merged = true; merged;) {
+    merged = false;
+    for (let a = 0; a < gs.length && !merged; a++) for (let b = a + 1; b < gs.length && !merged; b++)
+      if (gs[a].some(p => gs[b].some(q => Math.hypot(p.x - q.x, p.y - q.y) < 22))) { gs[a].push(...gs.splice(b, 1)[0]); merged = true; }
+  }
+  return gs.map(g => hull(g.flatMap(p => [...Array(10)].map((_, k) => ({ x: p.x + 10 * Math.cos(k * Math.PI / 5), y: p.y + 10 * Math.sin(k * Math.PI / 5) }))))
+    .map(q => ({ x: +Math.max(0, Math.min(100, q.x / 1.6)).toFixed(2), y: +Math.max(0, Math.min(100, q.y)).toFixed(2) })));
+}
+if (qs.get('new') && qs.get('az')) S.maps.forEach(map => {
+  map.zones = autoZones(S.photos.filter(p => p.map === map.id && p.pin).map(p => p.pin)).map((pts, k) => ({ id: uid++, name: `구역 ${k + 1}`, auto: true, pts }));
+});
 const P = id => S.photos.find(p => p.id === id);
 const curP = () => P(S.cur);
 const curMap = () => S.maps.find(m => m.id === S.mapId);
@@ -858,7 +881,7 @@ function renderMapEditor() {
         ${groups.filter(g => g.z || g.ps.length).map(g => `<section class="zgroup" aria-label="${g.z ? esc(g.z.name) : '구역 밖'}">
           <div class="zhead">${g.z ? `<i style="background:${ZC[M.zones.indexOf(g.z) % ZC.length]}"></i>
             <label class="sr-only" for="zn${g.z.id}">구역 이름</label><input class="zname" id="zn${g.z.id}" data-zname="${g.z.id}" data-k="zn${g.z.id}" value="${esc(g.z.name)}" maxlength="20">
-            <span class="t-xs muted">사진 ${g.ps.length}</span>
+            ${g.z.auto ? '<span class="badge" title="촬영 위치로 자동으로 잡은 구역">자동</span>' : ''}<span class="t-xs muted">사진 ${g.ps.length}</span>
             <button class="btn btn-ghost btn-sm" type="button" data-zdel="${g.z.id}" data-k="zdel${g.z.id}" aria-label="${esc(g.z.name)} 구역 지우기">지우기</button>`
             : `<span class="t-xs muted" style="font-weight:600">${M.zones.length ? '구역 밖' : '사진'}</span>`}</div>
           ${g.ps.length ? `<ul class="rows">${g.ps.map(pinRow).join('')}</ul>` : `<p class="t-xs muted" style="margin:0 0 0 18px">아직 이 구역에 찍힌 사진이 없어요.</p>`}
@@ -993,7 +1016,7 @@ function toast(m, undo) {
 }
 $('#toastAct').onclick = () => { $('#toast').classList.remove('show'); undoFn?.(); };
 
-if (qs.get('new')) setTimeout(() => toast('공간을 만들었어요. 여기서 콘텐츠를 채워주세요'), 300);
+if (qs.get('new')) setTimeout(() => toast(qs.get('az') ? `공간을 만들었어요. 촬영 위치로 잡은 구역 ${S.maps.reduce((n, m) => n + (m.zones || []).length, 0)}개는 지도 편집에서 고칠 수 있어요` : '공간을 만들었어요. 여기서 콘텐츠를 채워주세요'), 300);
 loadNaver();
 goPhoto(1);
 </script>

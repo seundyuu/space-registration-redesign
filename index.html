@@ -1146,7 +1146,7 @@ $('#nextBtn').onclick = () => {
     if (i >= 0) { state.nameTouched = true; openMap(i, '#mapName'); toast('방문자에게 보일 지도 이름을 붙여주세요'); return; }
   }
   if (state.step === 2 && noImages()) { toast('360이미지를 1장 이상 추가해주세요'); return; }
-  if (state.step === 2) { location.replace('edit.html?new=1&name=' + encodeURIComponent(state.name)); return; }
+  if (state.step === 2) { const az = state.maps.some(m => m.source === 'naver' && zonesOn(m)) ? '&az=1' : ''; location.replace('edit.html?new=1&name=' + encodeURIComponent(state.name) + az); return; }
   go(state.step + 1);
 };
 let tt;

@@ -151,7 +151,8 @@ fieldset { border: 0; margin: 0; padding: 0; min-width: 0; }
 .item .label { font-size: 16px; line-height: 24px; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .item .marks { display: flex; gap: 10px; flex: none; }
 .mark { display: inline-flex; align-items: center; gap: 3px; font-size: 12px; line-height: 16px; color: var(--muted-foreground); }
-.mark.off img { filter: grayscale(1); opacity: .55; }
+.mark svg { flex: none; }
+.mark.off svg { opacity: .7; }
 .mark.on { color: var(--accent); font-weight: 600; }
 .items.edit .item { cursor: default; padding: 8px 12px 8px 20px; }
 .items.edit .input { height: 36px; flex: 1; min-width: 0; }
@@ -629,6 +630,11 @@ const LUCIDE = {
   arrowUpDown: '<path d="m21 16-4 4-4-4"/><path d="M17 20V4"/><path d="m3 8 4-4 4 4"/><path d="M7 4v16"/>',
   layers: '<path d="M12.83 2.18a2 2 0 0 0-1.66 0L2.6 6.08a1 1 0 0 0 0 1.83l8.58 3.91a2 2 0 0 0 1.66 0l8.58-3.9a1 1 0 0 0 0-1.83Z"/><path d="m22 17.65-9.17 4.16a2 2 0 0 1-1.66 0L2 17.65"/><path d="m22 12.65-9.17 4.16a2 2 0 0 1-1.66 0L2 12.65"/>',
 };
+const svg14 = d => `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${d}</svg>`;
+const LUCIDE_SM = {
+  mapPin: svg14('<path d="M20 10c0 4.993-5.539 10.193-7.399 11.799a1 1 0 0 1-1.202 0C9.539 20.193 4 14.993 4 10a8 8 0 0 1 16 0"/><circle cx="12" cy="10" r="3"/>'),
+  image: svg14('<rect width="18" height="18" x="3" y="3" rx="2" ry="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"/>'),
+};
 const tip = (ic, title, desc) => `<div class="tip" role="note"><span class="tip-ico" aria-hidden="true"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${LUCIDE[ic]}</svg></span><p class="tip-title">${title}</p><p class="tip-desc">${desc}</p></div>`;
 // 비어 있으면 안내문 길이만큼, 채우면 글자 수만큼 제목 입력칸 너비를 맞춘다
 const titleSize = v => v.trim() ? Math.max(4, [...v].length + 2) : 24;
@@ -660,8 +666,8 @@ function mapsSub() {
       <button class="item" type="button" data-map="${i}"${i === state.active ? ' aria-current="true"' : ''}>
         <span class="lead"><span class="no" aria-hidden="true">${i + 1}</span><span class="label"${named(m) || !needsName() ? '' : ' style="color:var(--muted-foreground);font-weight:500"'}>${esc(named(m) || !needsName() ? dn(m, i) : '이름 없음')}</span></span>
         <span class="marks">
-          <span class="mark ${m.map ? 'on' : 'off'}">${icon('map-pin', 16)}<span>${m.map ? '지도' : '없음'}</span></span>
-          <span class="mark ${m.images.length && placed(m) === m.images.length ? 'on' : 'off'}">${icon('photo-circle', 16)}<span>${placed(m)}/${m.images.length}</span></span>
+          <span class="mark ${m.map ? 'on' : 'off'}">${LUCIDE_SM.mapPin}<span>${m.map ? '지도' : '없음'}</span></span>
+          <span class="mark ${m.images.length && placed(m) === m.images.length ? 'on' : 'off'}">${LUCIDE_SM.image}<span>${placed(m)}/${m.images.length}</span></span>
         </span>
       </button></li>`).join('')}</ul>
     ${isSingle() && n === 1 ? '' : `<button class="btn btn-outline add-map" type="button" id="addMapItem">${icon('plus', 16)}지도 추가하기</button>`}

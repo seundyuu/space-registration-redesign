@@ -383,9 +383,9 @@ const GROUPS = ['방문자 이동', '정보 보여주기', '영역·예약'];
 const SKY = [['#9cc8f0','#b9a888'],['#a9d2f2','#7f9a6a'],['#c3d9ef','#a07d5e'],['#8fbde8','#5f7f58'],['#b8d4ee','#8e8a80'],['#9fc3e6','#6d8f73'],['#b4cfe9','#9b8a6c']];
 const qs = new URLSearchParams(location.search);
 const S = {
-  name: qs.get('name') || '가평 휴밸리',
+  name: qs.get('name') || '파주 휴밸리',
   vis: 'private',
-  // 예시: 가평 휴밸리(숙박) 102호 객실 + 실내 수영장. img = assets/pano/{img}.jpg (360 equirectangular)
+  // 예시: 파주 휴밸리(숙박, 원본 사진 GPS 기준 파주시 탄현면) 102호 객실 + 실내 수영장. img = assets/pano/{img}.jpg (360 equirectangular)
   // pin은 원본 사진(~/Downloads/휴밸리)의 GPS를 지도 프레임 %로 바꾼 값. 실내 3장은 GPS가 같은 점으로 찍혀 겹친다
   maps: [
     { id: 1, label: '102호 객실', center: { lat: 37.83582, lng: 126.735417 }, route: { from: 1, to: 3 }, zones: [{ id: 90, name: '현관', pts: [{ x: 44, y: 54 }, { x: 60, y: 54 }, { x: 60, y: 70 }, { x: 44, y: 70 }] }] },

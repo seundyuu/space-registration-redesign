@@ -221,13 +221,19 @@ fieldset { border: 0; margin: 0; padding: 0; min-width: 0; }
 .pin.static { position: relative; transform: translate(-0px, 0); }
 .nv-note { margin: 0 0 8px; padding: 8px 12px; border-radius: var(--radius-md); background: var(--secondary); color: var(--foreground); }
 .drop.over { border-color: var(--accent); background: var(--accent-bg); }
-.src-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 16px; }
-.src-card { display: flex; flex-direction: column; align-items: flex-start; gap: 8px; text-align: left; padding: 24px; border: 1px solid var(--border); border-radius: var(--radius-lg); background: var(--background); cursor: pointer; }
+.src-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 12px; }
+/* 지도 방식 고르기: 이름 입력과 선으로 나눠 질문 하나씩, 카드는 아이콘 · (이름+추천) · 얻는 것 · 맞는 곳 */
+.src-sec.split { border-top: 1px solid var(--border); margin-top: 4px; padding-top: 20px; }
+.src-sec-h { margin: 0; }
+.src-sec-sub { margin: 4px 0 14px; }
+.src-card { display: flex; align-items: center; gap: 14px; padding: 18px 16px 18px 18px; text-align: left; border: 1px solid var(--border); border-radius: var(--radius-lg); background: var(--background); cursor: pointer; }
 .src-card:hover { border-color: var(--foreground); }
-.src-top { display: flex; width: 100%; justify-content: space-between; align-items: flex-start; margin-bottom: 8px; }
-.src-ico { width: 48px; height: 48px; border-radius: 12px; background: var(--secondary); display: grid; place-items: center; padding: 0; cursor: pointer; }
-.src-list { display: flex; flex-direction: column; gap: 6px; margin-top: 8px; padding-top: 14px; border-top: 1px solid var(--border); width: 100%; }
-.src-list .ck { color: var(--accent); font-style: normal; font-weight: 600; }
+.src-card:hover .src-go { color: var(--foreground); transform: translateX(2px); }
+.src-ico { flex: none; width: 44px; height: 44px; border-radius: 12px; background: var(--secondary); display: grid; place-items: center; }
+.src-body { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.src-title { display: flex; align-items: center; gap: 6px; margin-bottom: 2px; }
+.src-rec { font-size: 12px; line-height: 16px; font-weight: 600; color: var(--accent); background: var(--accent-bg); border-radius: 6px; padding: 2px 6px; }
+.src-go { flex: none; font-size: 22px; line-height: 1; color: var(--semantic-border); transition: transform .12s, color .12s; }
 .name-chips { display: flex; gap: 6px; flex-wrap: wrap; margin: 8px 24px 0; }
 .name-chips .chip { height: 32px; padding: 0 12px; border-color: var(--border); background: var(--background); font-size: 13px; color: var(--foreground); cursor: pointer; }
 .name-chips .chip:hover { border-color: var(--foreground); }
@@ -749,21 +755,29 @@ function mapBody(m) {
   if (m.map) return workspace(m);
   if (m.source === 'upload') return `<div class="drop" data-drop="plan">${icon('map-pin', 32)}<span class="t-sm-sb">평면도나 안내도를 올려주세요</span><p class="t-xs muted">PNG·JPG, 20MB까지 · 파일을 여기로 끌어다 놓을 수 있어요</p><button class="btn btn-primary" type="button" id="addMap">파일 고르기</button><button class="btn btn-ghost" type="button" id="demoPlan" style="margin-top:4px">예시 평면도로 해보기</button></div>
     <button class="btn btn-ghost" type="button" id="backSrc" style="margin-top:8px">다른 방식 고르기</button>`;
-  // 편집 모드 '지도 추가' 모달과 같은 두 가지 방식. 네이버 지도를 먼저, 권장으로
-  return `<div role="group" aria-labelledby="srcH">
-    <p class="t-sm-m" id="srcH" style="margin:0 0 12px">지도를 어떻게 만들까요?</p>
+  // 편집 모드 '지도 추가' 모달과 같은 두 가지 방식. 토스 제품 원칙에 맞춰 —
+  // 한 영역엔 질문 하나(One Thing), 기능 이름보다 얻는 것 먼저(Value First), 추천을 붙여 고르기 쉽게(Easy to Answer), 왜 묻는지 한 줄(Explain Why)
+  return `<div class="src-sec${needsName() ? ' split' : ''}" role="group" aria-labelledby="srcH">
+    <h3 class="t-base-sb src-sec-h" id="srcH">지도를 어떻게 만들까요?</h3>
+    <p class="t-sm muted src-sec-sub">방문자가 보는 미니맵의 바탕이 돼요. 만든 뒤에도 ⋯ 메뉴에서 바꿀 수 있어요.</p>
     <div class="src-grid">
       <button class="src-card" type="button" data-src="naver">
-        <span class="src-top"><span class="src-ico">${icon('map-pin', 24)}</span><span class="badge ok">권장</span></span>
-        <span class="t-base-sb">네이버 지도</span>
-        <span class="t-sm muted">360이미지에 저장된 촬영 위치로 실제 지도를 바로 불러와요.</span>
-        <span class="src-list t-sm"><span><i class="ck" aria-hidden="true">✓</i> 사진 위치가 자동으로 찍혀요</span><span><i class="ck" aria-hidden="true">✓</i> 평면도 없이 바로 시작할 수 있어요</span><span><i class="ck" aria-hidden="true">✓</i> 캠핑장처럼 야외에 넓게 퍼진 곳에 잘 맞아요</span></span>
+        <span class="src-ico">${icon('map-pin', 22)}</span>
+        <span class="src-body">
+          <span class="src-title"><span class="t-base-sb">네이버 지도</span><span class="src-rec">추천</span></span>
+          <span class="t-sm">사진만 올리면 위치가 자동으로 찍혀요</span>
+          <span class="t-xs muted">평면도 없이 바로 · 야외나 넓은 곳에 잘 맞아요</span>
+        </span>
+        <span class="src-go" aria-hidden="true">›</span>
       </button>
       <button class="src-card" type="button" data-src="upload">
-        <span class="src-top"><span class="src-ico"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#0a0a0a" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="m16 12-4-4-4 4M12 16V8"/></svg></span></span>
-        <span class="t-base-sb">직접 업로드</span>
-        <span class="t-sm muted">평면도나 안내도 이미지를 올리고, 사진 위치를 직접 찍어요.</span>
-        <span class="src-list t-sm"><span><i class="ck" aria-hidden="true">✓</i> 건물 안이나 층별 공간에 잘 맞아요</span><span><i class="ck" aria-hidden="true">✓</i> 원하는 자리에 사진을 놓을 수 있어요</span><span><i class="ck" aria-hidden="true">✓</i> PNG·JPG 이미지, 20MB까지</span></span>
+        <span class="src-ico"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#0a0a0a" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="m16 12-4-4-4 4M12 16V8"/></svg></span>
+        <span class="src-body">
+          <span class="src-title"><span class="t-base-sb">평면도 올리기</span></span>
+          <span class="t-sm">평면도나 안내도 위에 위치를 직접 찍어요</span>
+          <span class="t-xs muted">건물 안·층별 공간에 잘 맞아요 · PNG·JPG 20MB까지</span>
+        </span>
+        <span class="src-go" aria-hidden="true">›</span>
       </button>
     </div></div>`;
 }

@@ -594,10 +594,16 @@ function mountNaver(m) {
   nvRO = new ResizeObserver(() => { if (slot.isConnected && slot.clientWidth) map.setSize(new naver.maps.Size(slot.clientWidth, slot.clientHeight)); });
   nvRO.observe(slot);
   m.nv.markers.forEach(k => k.setMap(null));
-  m.nv.markers = m.images.filter(i => i.pin && i.pin.lat !== undefined).map(i => new naver.maps.Marker({
-    map, position: new naver.maps.LatLng(i.pin.lat, i.pin.lng), title: i.name,
-    icon: { content: `<div class="pin static${i.auto ? '' : ' manual'}${m.coach === i.id ? ' coach' : ''}"><b>${m.images.indexOf(i) + 1}</b><span>${esc(i.name)}</span></div>`, anchor: new naver.maps.Point(11, 11) },
-  }));
+  // 실내 사진은 GPS가 같은 점으로 찍혀 핀이 완전히 겹친다 → 같은 자리(약 1m 안) 핀은 화면에서만 둘레에 펼쳐 보여준다(좌표는 그대로)
+  const pts = m.images.filter(i => i.pin && i.pin.lat !== undefined), spot = i => `${i.pin.lat.toFixed(5)},${i.pin.lng.toFixed(5)}`;
+  const same = {}; pts.forEach(i => (same[spot(i)] ||= []).push(i));
+  m.nv.markers = pts.map(i => {
+    const g = same[spot(i)], k = g.indexOf(i), r = g.length > 1 ? 16 : 0, a = -Math.PI / 2 + k * 2 * Math.PI / g.length;
+    return new naver.maps.Marker({
+      map, position: new naver.maps.LatLng(i.pin.lat, i.pin.lng), title: i.name,
+      icon: { content: `<div class="pin static${i.auto ? '' : ' manual'}${m.coach === i.id ? ' coach' : ''}"><b>${m.images.indexOf(i) + 1}</b><span>${esc(i.name)}</span></div>`, anchor: new naver.maps.Point(11 - r * Math.cos(a), 11 - r * Math.sin(a)) },
+    });
+  });
   if (m.needFit) {
     const pts = m.images.filter(i => i.pin && i.pin.lat !== undefined);
     if (pts.length === 1) { map.setCenter(new naver.maps.LatLng(pts[0].pin.lat, pts[0].pin.lng)); map.setZoom(17); }

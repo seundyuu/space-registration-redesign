@@ -393,7 +393,8 @@ dialog p { margin: 0 0 16px; color: var(--muted-foreground); }
   .actionbar .btn-lg { height: 48px; }
   #nextBtn { flex: 1; }
   .toast { left: 16px; right: 16px; min-width: 0; bottom: calc(96px + env(safe-area-inset-bottom, 0px)); }
-  .m-maps { display: flex; gap: 8px; overflow-x: auto; margin: 0 -16px 16px; padding: 2px 16px 4px; scrollbar-width: none; }
+  /* 위아래 여백 = 칩을 집어 손을 따라 움직일 때 잘리지 않을 공간(바깥 여백을 그만큼 빼서 배치는 그대로) */
+  .m-maps { display: flex; gap: 8px; overflow-x: auto; margin: -10px -16px 6px; padding: 12px 16px 14px; scrollbar-width: none; }
   .m-maps::-webkit-scrollbar { display: none; }
   .m-chip { flex: none; display: inline-flex; align-items: center; gap: 8px; height: 40px; padding: 0 14px; border: 1px solid var(--border); border-radius: 999px; background: var(--background); font-size: 14px; font-weight: 600; cursor: pointer; white-space: nowrap; }
   .m-chip[aria-current="true"] { border-color: var(--foreground); background: var(--foreground); color: var(--primary-foreground); }
@@ -402,8 +403,6 @@ dialog p { margin: 0 0 16px; color: var(--muted-foreground); }
   /* 칩 순서 바꾸기: 마우스는 끌면 바로, 터치는 길게 눌러 집은 뒤 끈다(짧게 밀면 그냥 가로 스크롤) */
   .m-chip[data-mc] { touch-action: pan-x; user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; }
   .m-chip.lifting { position: relative; z-index: 2; cursor: grabbing; box-shadow: 0 6px 16px rgba(0,0,0,.18); transition: none; }
-  .m-chip.mc-before { box-shadow: -4px 0 0 var(--accent); }
-  .m-chip.mc-after { box-shadow: 4px 0 0 var(--accent); }
   .panel-head { padding: 16px 16px 0; }
   .panel-body { padding: 12px 16px 16px; }
   .title-hint { margin: 4px 16px 0; }
@@ -989,8 +988,14 @@ document.addEventListener('change', e => {
 });
 // 상단 지도 칩 끌어서 순서 바꾸기 (좁은 화면). HTML 드래그는 터치에서 안 되므로 포인터 이벤트로 직접 처리
 let mc = null, eatClick = false;
-const mcClear = () => document.querySelectorAll('.mc-before, .mc-after').forEach(el => el.classList.remove('mc-before', 'mc-after'));
-function mcLift() { mc.on = true; mc.el.classList.add('lifting'); mc.el.setPointerCapture?.(mc.pid); navigator.vibrate?.(10); }
+// 집은 칩은 손을 그대로 따라오고(가로·세로), 나머지 칩은 들어갈 자리를 비켜 준다
+function mcLift() {
+  const chips = [...document.querySelectorAll('.m-chip[data-mc]')];
+  mc.rects = chips.map(c => c.getBoundingClientRect()); mc.chips = chips;
+  mc.w = mc.rects[mc.from].width + 8; mc.to = mc.from; mc.on = true;
+  chips.forEach(c => { if (c !== mc.el) c.style.transition = 'transform .18s ease'; });
+  mc.el.classList.add('lifting'); mc.el.setPointerCapture?.(mc.pid); navigator.vibrate?.(10);
+}
 document.addEventListener('pointerdown', e => {
   const el = e.target.closest?.('.m-chip[data-mc]'); if (!el || e.button > 0) return;
   mc = { el, from: +el.dataset.mc, x0: e.clientX, y0: e.clientY, pid: e.pointerId, on: false, to: null, touch: e.pointerType !== 'mouse' };
@@ -1001,22 +1006,32 @@ document.addEventListener('pointermove', e => {
   const dx = e.clientX - mc.x0, dy = e.clientY - mc.y0;
   if (!mc.on) {
     if (mc.touch) { if (Math.hypot(dx, dy) > 8) { clearTimeout(mc.timer); mc = null; } return; } // 집기 전에 움직이면 스크롤로 본다
-    if (Math.abs(dx) < 6) return; mcLift();
+    if (Math.hypot(dx, dy) < 6) return; mcLift();
   }
-  mc.el.style.transform = `translateX(${dx}px) scale(1.04)`;
-  const chips = [...document.querySelectorAll('.m-chip[data-mc]')].filter(c => c !== mc.el); mcClear(); mc.to = null;
-  for (const c of chips) { const r = c.getBoundingClientRect(); if (e.clientX >= r.left && e.clientX <= r.right) {
-    const after = e.clientX > r.left + r.width / 2; c.classList.add(after ? 'mc-after' : 'mc-before');
-    let to = +c.dataset.mc + (after ? 1 : 0); if (mc.from < to) to--; mc.to = to; break; } }
+  mc.el.style.transform = `translate(${dx}px, ${Math.max(-10, Math.min(10, dy * .6))}px) scale(1.05) rotate(${Math.max(-3, Math.min(3, dx / 40))}deg)`;
+  // 들어갈 자리 = 끌고 있는 칩 가운데보다 왼쪽에 있는 다른 칩 수
+  const r0 = mc.rects[mc.from], cx = r0.left + r0.width / 2 + dx;
+  mc.to = mc.rects.filter((r, k) => k !== mc.from && r.left + r.width / 2 < cx).length;
+  mc.chips.forEach((c, k) => {
+    if (k === mc.from) return;
+    const sh = k > mc.from && k <= mc.to ? -mc.w : k < mc.from && k >= mc.to ? mc.w : 0;
+    c.style.transform = sh ? `translateX(${sh}px)` : '';
+  });
 });
 // 터치로 집은 동안엔 가로 스크롤을 막는다
 document.addEventListener('touchmove', e => { if (mc?.on) e.preventDefault(); }, { passive: false });
 function mcEnd(e) {
   if (!mc || (e && e.pointerId !== mc.pid)) return;
-  clearTimeout(mc.timer); const { on, from, to, el } = mc; mc = null; mcClear();
+  clearTimeout(mc.timer); const { on, from, to, el, rects, chips } = mc; mc = null;
   if (!on) return;
-  el.classList.remove('lifting'); el.style.transform = ''; eatClick = true; setTimeout(() => { eatClick = false; }, 0);
-  if (to !== null && moveMap(from, to)) $(`.m-chip[data-mc="${to}"]`)?.focus();
+  eatClick = true; setTimeout(() => { eatClick = false; }, 0);
+  // 손을 떼면 집은 칩이 비워 둔 자리로 미끄러져 들어간 뒤 순서를 확정한다
+  const r0 = rects[from], left = to > from ? rects[to].right - r0.width : rects[to].left;
+  el.style.transition = 'transform .16s ease'; el.style.transform = `translate(${left - r0.left}px, 0)`;
+  setTimeout(() => {
+    chips.forEach(c => { c.style.transition = ''; c.style.transform = ''; }); el.classList.remove('lifting');
+    if (moveMap(from, to)) $(`.m-chip[data-mc="${to}"]`)?.focus();
+  }, 170);
 }
 document.addEventListener('pointerup', mcEnd);
 document.addEventListener('pointercancel', mcEnd);

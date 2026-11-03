@@ -173,6 +173,15 @@ fieldset { border: 0; margin: 0; padding: 0; min-width: 0; }
 .ws-list { display: flex; flex-direction: column; gap: 8px; max-height: 560px; overflow-y: auto; padding-right: 4px; }
 .ws-list-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
 .ws-list-head h3 { margin: 0; }
+/* 360이미지 빈 상태: 지도와 같은 높이로 채우고, 할 일은 '사진 고르기' 하나로(예시는 보조) */
+.ws:has(.ws-list.is-empty) { align-items: stretch; }
+.ws-list.is-empty { max-height: none; overflow: visible; padding-right: 0; gap: 12px; }
+.drop.img-empty { flex: 1; justify-content: center; gap: 6px; padding: 32px 24px; }
+.drop.img-empty p { margin: 0; }
+.img-empty-ico { width: 52px; height: 52px; border-radius: 14px; background: var(--background); border: 1px solid var(--border); display: grid; place-items: center; margin-bottom: 6px; }
+.drop .img-empty-note { margin-top: 6px; color: var(--accent); font-weight: 600; }
+.img-empty-cta { margin-top: 14px; min-width: 160px; }
+.img-empty-demo { color: var(--muted-foreground); font-size: 13px; text-decoration: underline; text-underline-offset: 3px; }
 .ws-list p { margin: 0; }
 .sel-guide { color: var(--accent); font-weight: 600; }
 .rows { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
@@ -532,6 +541,7 @@ function switchPins() {
     autoPin(m);
   });
 }
+let nvRO = null;
 function mountNaver(m) {
   const slot = $('#nmapSlot');
   if (!slot || !isReal(m)) return;
@@ -544,6 +554,10 @@ function mountNaver(m) {
   slot.appendChild(m.nv.el);
   const { map } = m.nv;
   map.setSize(new naver.maps.Size(slot.clientWidth, slot.clientHeight));
+  // 처음 크기로 고정되지 않게, 화면 확대·창 크기 변경 때마다 지도 크기를 다시 맞춘다
+  nvRO?.disconnect();
+  nvRO = new ResizeObserver(() => { if (slot.isConnected && slot.clientWidth) map.setSize(new naver.maps.Size(slot.clientWidth, slot.clientHeight)); });
+  nvRO.observe(slot);
   m.nv.markers.forEach(k => k.setMap(null));
   m.nv.markers = m.images.filter(i => i.pin && i.pin.lat !== undefined).map(i => new naver.maps.Marker({
     map, position: new naver.maps.LatLng(i.pin.lat, i.pin.lng), title: i.name,
@@ -782,15 +796,21 @@ function workspace(m) {
       <p class="sr-only" id="crossPos" aria-live="polite">${s ? (isReal(m) ? '방향키로 지도를 옮겨 가운데 십자선에 맞추고 Enter로 찍어요.' : `가로 ${Math.round(c.x)}%, 세로 ${Math.round(c.y)}%`) : ''}</p>
       <p class="map-legend t-xs muted" style="margin:8px 0 0">${m.source === 'naver' ? '<span><i style="background:var(--accent)"></i>자동으로 찍힘</span>' : ''}<span><i style="box-shadow:inset 0 0 0 2px var(--accent)"></i>직접 찍음</span><span>· 구역 그리기는 공간을 만든 뒤 내 공간의 ‘편집’에서 할 수 있어요.</span></p>
     </div>
-    <div class="ws-list" aria-labelledby="imgH">
-      <div class="ws-list-head"><h3 id="imgH" class="t-base-sb">360이미지 <span class="t-sm muted" style="font-weight:400">${m.images.length}장</span></h3>
-        <button class="btn ${m.images.length ? 'btn-outline' : 'btn-primary'}" type="button" id="addImg">${icon('plus', 16)}추가</button></div>
-      <p class="t-xs ${s ? 'sel-guide' : 'muted'}" id="wsGuide">${guide(m)}</p>
-      ${m.images.length ? `
+    <div class="ws-list${m.images.length ? '' : ' is-empty'}" aria-labelledby="imgH">
+      <div class="ws-list-head"><h3 id="imgH" class="t-base-sb">360이미지${m.images.length ? ` <span class="t-sm muted" style="font-weight:400">${m.images.length}장</span>` : ''}</h3>
+        ${m.images.length ? `<button class="btn btn-outline" type="button" id="addImg">${icon('plus', 16)}추가</button>` : ''}</div>
+      ${m.images.length ? `<p class="t-xs ${s ? 'sel-guide' : 'muted'}" id="wsGuide">${guide(m)}</p>
         ${bulkBar(m)}
         ${todo.length ? `<h4 class="group-h">위치를 찍어야 해요 · ${todo.length}</h4><ul class="rows">${todo.map(row).join('')}</ul>` : ''}
         ${ok.length ? `<h4 class="group-h">위치가 찍힌 사진 · ${ok.length}</h4><ul class="rows">${ok.map(row).join('')}</ul>` : ''}`
-      : `<div class="drop" data-drop="img" style="padding:24px 16px">${icon('photo-circle', 32)}<span class="t-sm-sb">아직 360이미지가 없어요</span><p class="t-xs muted" style="margin:0 0 8px">JPG·PNG 여러 장을 한 번에 고르거나 끌어다 놓을 수 있어요</p><button class="btn btn-ghost" type="button" id="demoImg">예시 사진으로 해보기</button></div>`}
+      : `<div class="drop img-empty" data-drop="img">
+          <span class="img-empty-ico" aria-hidden="true">${icon('photo-circle', 28)}</span>
+          <span class="t-base-sb">360이미지를 올려주세요</span>
+          <p class="t-sm muted">JPG·PNG 여러 장을 한 번에 고르거나<br>이곳으로 끌어다 놓을 수 있어요</p>
+          ${m.source === 'naver' ? `<p class="img-empty-note t-xs" id="wsGuide"><span aria-hidden="true">✓</span> 촬영 위치가 있는 사진은 지도에 자동으로 찍혀요</p>` : `<p class="sr-only" id="wsGuide">${guide(m)}</p>`}
+          <button class="btn btn-primary btn-lg img-empty-cta" type="button" id="addImg">사진 고르기</button>
+          <button class="btn btn-ghost img-empty-demo" type="button" id="demoImg">예시 사진으로 해보기</button>
+        </div>`}
     </div>
   </div>`;
 }

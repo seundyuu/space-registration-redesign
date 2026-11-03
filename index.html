@@ -282,9 +282,18 @@ fieldset { border: 0; margin: 0; padding: 0; min-width: 0; }
 .floorplan { position: relative; aspect-ratio: 16 / 10; max-width: 100%; border: 1px solid var(--border); border-radius: var(--radius-md); background: var(--illust-bg); overflow: hidden; cursor: crosshair; }
 .floorplan svg { width: 100%; height: 100%; display: block; }
 .floorplan.idle { cursor: default; }
-.pin { position: absolute; transform: translate(-50%, -50%); display: flex; align-items: center; gap: 4px; pointer-events: none; }
+.pin { position: absolute; transform: translate(-50%, -50%); display: flex; align-items: center; pointer-events: none; }
 .pin b { width: 22px; height: 22px; border-radius: 99px; background: var(--accent); color: #fff; font-size: 12px; display: grid; place-items: center; box-shadow: 0 0 0 3px rgba(47,107,255,.2); }
-.pin span { font-size: 12px; font-weight: 600; background: #fff; border: 1px solid var(--border); border-radius: 6px; padding: 1px 6px; white-space: nowrap; }
+.pin b { pointer-events: auto; cursor: default; }
+/* 이름표는 겹치지 않게 평소엔 숨기고, 핀에 마우스를 올리면 핀 바로 위에 */
+.pin span { position: absolute; left: 50%; bottom: calc(100% + 8px); transform: translate(-50%, 4px); font-size: 12px; font-weight: 600; background: #fff; border: 1px solid var(--border); border-radius: 6px; padding: 2px 8px; white-space: nowrap; box-shadow: 0 2px 6px rgba(0,0,0,.12); opacity: 0; pointer-events: none; transition: opacity .12s, transform .12s; z-index: 2; }
+.pin:has(b:hover) { z-index: 3; }
+.pin:has(b:hover) span { opacity: 1; transform: translate(-50%, 0); }
+/* 촬영 위치로 자동으로 잡은 구역 */
+.zones { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; }
+.zones polygon { fill: rgba(47,107,255,.10); stroke: var(--accent); stroke-width: 1.5; stroke-dasharray: 5 4; vector-effect: non-scaling-stroke; }
+.zone-label { position: absolute; transform: translate(-50%, calc(-100% - 4px)); font-size: 12px; font-weight: 600; color: var(--accent); background: rgba(255,255,255,.9); border-radius: 6px; padding: 1px 6px; white-space: nowrap; pointer-events: none; }
+.map-legend .check-row { min-height: 0; font-size: 12px; color: var(--foreground); }
 
 .grid { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 12px; }
 .group-h { margin: 16px 0 8px; font-size: 12px; line-height: 16px; font-weight: 600; color: var(--muted-foreground); }
@@ -468,7 +477,7 @@ const nv = { status: 'none' }; // none | nokey | loading | ready | failed(인증
 const DEFAULT_LL = { lat: 37.5666, lng: 126.9784 };
 const isReal = m => m.source === 'naver' && nv.status === 'ready';
 // 시안용 GPS 좌표(지도 위 %). 3장 중 1장은 GPS가 없는 사진으로 가정
-const GPS = [[22, 62], [38, 40], [56, 30], [70, 58], [48, 74], [82, 34], [30, 82], [64, 18]];
+const GPS = [[24, 58], [32, 68], [50, 50], [64, 30], [74, 38], [50, 50], [56, 74], [46, 80]];
 // 네이버 지도면 GPS가 있는 사진은 자동으로 위치가 찍힌다
 function autoPin(m) {
   if (m.source !== 'naver') return 0;
@@ -489,6 +498,39 @@ function autoPin(m) {
   });
   if (k) m.needFit = true;
   return k;
+}
+// 구역 자동 잡기: 가까이 찍힌 사진끼리 묶고(거리 기준), 묶음마다 사진을 감싸는 다각형을 만든다.
+// 이름·모양은 공간을 만든 뒤 편집 화면의 '구역 그리기'에서 고친다
+const zonesOn = m => m.autoZones !== false;
+function hull(P) {
+  const p = [...P].sort((a, b) => a.x - b.x || a.y - b.y), cr = (o, a, b) => (a.x - o.x) * (b.y - o.y) - (a.y - o.y) * (b.x - o.x);
+  const lo = [], up = [];
+  for (const q of p) { while (lo.length > 1 && cr(lo[lo.length - 2], lo[lo.length - 1], q) <= 0) lo.pop(); lo.push(q); }
+  for (const q of p.reverse()) { while (up.length > 1 && cr(up[up.length - 2], up[up.length - 1], q) <= 0) up.pop(); up.push(q); }
+  return lo.slice(0, -1).concat(up.slice(0, -1));
+}
+// pts: 같은 단위의 평면 좌표 {x, y, ref}. th = 같은 구역으로 볼 거리, pad = 사진 둘레 여백
+function makeZones(pts, th, pad) {
+  const gs = pts.map(p => [p]);
+  for (let merged = true; merged;) {
+    merged = false;
+    for (let a = 0; a < gs.length && !merged; a++) for (let b = a + 1; b < gs.length && !merged; b++)
+      if (gs[a].some(p => gs[b].some(q => Math.hypot(p.x - q.x, p.y - q.y) < th))) { gs[a].push(...gs.splice(b, 1)[0]); merged = true; }
+  }
+  return gs.map(g => ({ n: g.length, ring: hull(g.flatMap(p => [...Array(10)].map((_, k) => ({ x: p.x + pad * Math.cos(k * Math.PI / 5), y: p.y + pad * Math.sin(k * Math.PI / 5) })))) }))
+    .sort((a, b) => Math.min(...a.ring.map(q => q.y)) - Math.min(...b.ring.map(q => q.y)) || Math.min(...a.ring.map(q => q.x)) - Math.min(...b.ring.map(q => q.x)));
+}
+// 예시 지도(%) — 지도 비율 16:10이라 가로 %를 1.6배 해서 실제 거리로 맞춘다
+function zonesPct(m) {
+  const pts = m.images.filter(i => i.pin && i.pin.x !== undefined).map(i => ({ x: i.pin.x * 1.6, y: i.pin.y }));
+  return makeZones(pts, 22, 7).map(z => ({ n: z.n, ring: z.ring.map(q => ({ x: Math.max(0, Math.min(100, q.x / 1.6)), y: Math.max(0, Math.min(100, q.y)) })) }));
+}
+function zonesOverlay(m) {
+  if (!zonesOn(m)) return '';
+  const zs = zonesPct(m);
+  if (!zs.length) return '';
+  return `<svg class="zones" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">${zs.map(z => `<polygon points="${z.ring.map(q => q.x.toFixed(2) + ',' + q.y.toFixed(2)).join(' ')}"/>`).join('')}</svg>`
+    + zs.map((z, k) => { const top = Math.min(...z.ring.map(q => q.y)), xs = z.ring.map(q => q.x); return `<span class="zone-label" style="left:${(Math.min(...xs) + Math.max(...xs)) / 2}%;top:${top}%">구역 ${k + 1} · ${z.n}장</span>`; }).join('');
 }
 function loadNaver() {
   if (nv.status !== 'none') return;
@@ -516,12 +558,22 @@ function mountNaver(m) {
     const el = document.createElement('div'); el.className = 'nmap';
     const map = new naver.maps.Map(el, { center: new naver.maps.LatLng(DEFAULT_LL.lat, DEFAULT_LL.lng), zoom: 16, mapDataControl: false, scaleControl: false });
     naver.maps.Event.addListener(map, 'click', e => { if (cur() === m && state.sel) pinLL(e.coord.lat(), e.coord.lng()); });
-    m.nv = { el, map, markers: [] };
+    m.nv = { el, map, markers: [], zones: [] };
   }
   slot.appendChild(m.nv.el);
   const { map } = m.nv;
   map.setSize(new naver.maps.Size(slot.clientWidth, slot.clientHeight));
   m.nv.markers.forEach(k => k.setMap(null));
+  m.nv.zones.forEach(k => k.setMap(null)); m.nv.zones = [];
+  if (zonesOn(m)) {
+    // 위경도 → 미터 평면으로 바꿔 묶고(35m 안이면 같은 구역), 다시 위경도로
+    const ll = m.images.filter(i => i.pin && i.pin.lat !== undefined), lat0 = ll.length ? ll[0].pin.lat : 0, kx = 111320 * Math.cos(lat0 * Math.PI / 180), ky = 110540;
+    makeZones(ll.map(i => ({ x: i.pin.lng * kx, y: -i.pin.lat * ky })), 35, 12).forEach((z, k) => {
+      const path = z.ring.map(q => new naver.maps.LatLng(-q.y / ky, q.x / kx)), top = path.reduce((a, b) => b.lat() > a.lat() ? b : a);
+      m.nv.zones.push(new naver.maps.Polygon({ map, paths: [path], fillColor: '#2f6bff', fillOpacity: .1, strokeColor: '#2f6bff', strokeOpacity: .9, strokeWeight: 2, strokeStyle: 'shortdash', clickable: false }));
+      m.nv.zones.push(new naver.maps.Marker({ map, position: top, clickable: false, icon: { content: `<span class="zone-label" style="position:relative;display:inline-block;transform:translate(-50%,-100%)">구역 ${k + 1} · ${z.n}장</span>`, anchor: new naver.maps.Point(0, 4) } }));
+    });
+  }
   m.nv.markers = m.images.filter(i => i.pin && i.pin.lat !== undefined).map(i => new naver.maps.Marker({
     map, position: new naver.maps.LatLng(i.pin.lat, i.pin.lng), title: i.name,
     icon: { content: `<div class="pin static${i.auto ? '' : ' manual'}"><b>${m.images.indexOf(i) + 1}</b><span>${esc(i.name)}</span></div>`, anchor: new naver.maps.Point(11, 11) },
@@ -756,11 +808,14 @@ function workspace(m) {
         aria-label="${esc(dn(m))} ${SRC[m.source]}${s ? `, ‘${esc(s.name)}’ 위치 고르는 중` : ''}">
         ${isReal(m) ? '<div class="nmap-slot" id="nmapSlot"></div>'
           : (m.source === 'naver' ? NAVER_SVG : m.planUrl ? `<img class="plan-img" src="${m.planUrl}" alt="">` : PLAN_SVG)
+            + (m.source === 'naver' ? zonesOverlay(m) : '')
             + pl.map(i => `<div class="pin${i.auto ? '' : ' manual'}" style="left:${i.pin.x}%;top:${i.pin.y}%"><b>${m.images.indexOf(i) + 1}</b><span>${esc(i.name)}</span></div>`).join('')}
         ${s ? `<div class="cross" id="cross" style="left:${isReal(m) ? 50 : c.x}%;top:${isReal(m) ? 50 : c.y}%" aria-hidden="true"></div>` : ''}
       </div>
       <p class="sr-only" id="crossPos" aria-live="polite">${s ? (isReal(m) ? '방향키로 지도를 옮겨 가운데 십자선에 맞추고 Enter로 찍어요.' : `가로 ${Math.round(c.x)}%, 세로 ${Math.round(c.y)}%`) : ''}</p>
-      <p class="map-legend t-xs muted" style="margin:8px 0 0">${m.source === 'naver' ? '<span><i style="background:var(--accent)"></i>자동으로 찍힘</span>' : ''}<span><i style="box-shadow:inset 0 0 0 2px var(--accent)"></i>직접 찍음</span><span>· 구역 그리기는 공간을 만든 뒤 내 공간의 ‘편집’에서 할 수 있어요.</span></p>
+      <p class="map-legend t-xs muted" style="margin:8px 0 0">${m.source === 'naver' ? '<span><i style="background:var(--accent)"></i>자동으로 찍힘</span>' : ''}<span><i style="box-shadow:inset 0 0 0 2px var(--accent)"></i>직접 찍음</span>${m.source === 'naver'
+        ? `<label class="check-row"><input type="checkbox" id="autoZone"${zonesOn(m) ? ' checked' : ''}>촬영 위치로 구역 자동 잡기</label><span>· 구역 이름과 모양은 공간을 만든 뒤 내 공간의 ‘편집’에서 고칠 수 있어요.</span>`
+        : '<span>· 구역 그리기는 공간을 만든 뒤 내 공간의 ‘편집’에서 할 수 있어요.</span>'}</p>
     </div>
     <div class="ws-list" aria-labelledby="imgH">
       <div class="ws-list-head"><h3 id="imgH" class="t-base-sb">360이미지 <span class="t-sm muted" style="font-weight:400">${m.images.length}장</span></h3>
@@ -913,6 +968,7 @@ document.addEventListener('change', e => {
   if (e.target.dataset.ck) { const id = +e.target.dataset.ck; state.checked[e.target.checked ? 'add' : 'delete'](id); render(); $(`[data-ck="${id}"]`)?.focus(); }
   if (e.target.id === 'ckAll') { state.checked = e.target.checked ? new Set(cur().images.map(i => i.id)) : new Set(); render(); $('#ckAll')?.focus(); }
   if (e.target.id === 'imgFile') { addFiles([...e.target.files]); e.target.value = ''; }
+  if (e.target.id === 'autoZone') { cur().autoZones = e.target.checked; render(); $('#autoZone')?.focus(); toast(e.target.checked ? '촬영 위치로 구역을 잡았어요' : '자동 구역을 껐어요'); }
   if (e.target.id === 'planFile') { const f = e.target.files[0]; if (f) setPlan(f); e.target.value = ''; }
 });
 document.addEventListener('click', e => {

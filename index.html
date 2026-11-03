@@ -163,6 +163,8 @@ fieldset { border: 0; margin: 0; padding: 0; min-width: 0; }
 .title-edit:hover { border-color: var(--border); }
 .title-edit:focus-within { border-color: var(--semantic-border); box-shadow: 0 0 0 3px rgba(161,161,161,.5); }
 .title-edit.empty { border: 1px dashed var(--input); }
+/* 입력을 마친 이름은 제목처럼 — 글자를 패널 여백(24px)에 맞춘다. 비어 있거나 수정 중일 땐 입력칸 테두리를 여백에 맞춘다 */
+.title-edit:not(.empty):not(:focus-within) { margin-left: -13px; }
 .title-edit.invalid { border: 1px solid var(--destructive); }
 .title-hint { margin: 4px 24px 0; }
 /* 지도 작업공간: 왼쪽 지도(스크롤해도 고정) + 오른쪽 사진 목록 */

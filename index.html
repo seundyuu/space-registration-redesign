@@ -338,10 +338,10 @@ tbody th { font-weight: 500; }
 .check-row input:checked { background: var(--primary); border-color: var(--primary); }
 .check-row input:checked::after { content: ""; width: 4px; height: 8px; border: solid var(--primary-foreground); border-width: 0 2px 2px 0; transform: translateY(-1px) rotate(45deg); }
 /* 사진 여러 장 선택·삭제 — 체크박스는 shadcn Checkbox와 같은 모양, 일부만 고르면 가로줄(indeterminate) */
-.ck { appearance: none; width: 16px; height: 16px; flex: none; margin: 0; border: 1px solid var(--input); border-radius: 4px; box-shadow: var(--shadow-xs); display: grid; place-items: center; cursor: pointer; background: var(--background); }
-.ck:checked, .ck:indeterminate { background: var(--primary); border-color: var(--primary); }
-.ck:checked::after { content: ""; width: 4px; height: 8px; border: solid var(--primary-foreground); border-width: 0 2px 2px 0; transform: translateY(-1px) rotate(45deg); }
-.ck:indeterminate::after { content: ""; width: 8px; height: 2px; background: var(--primary-foreground); }
+.img-ck { appearance: none; width: 16px; height: 16px; flex: none; margin: 0; border: 1px solid var(--input); border-radius: 4px; box-shadow: var(--shadow-xs); display: grid; place-items: center; cursor: pointer; background: var(--background); }
+.img-ck:checked, .img-ck:indeterminate { background: var(--primary); border-color: var(--primary); }
+.img-ck:checked::after { content: ""; width: 4px; height: 8px; border: solid var(--primary-foreground); border-width: 0 2px 2px 0; transform: translateY(-1px) rotate(45deg); }
+.img-ck:indeterminate::after { content: ""; width: 8px; height: 2px; background: var(--primary-foreground); }
 .bulk { display: flex; align-items: center; justify-content: space-between; gap: 8px; min-height: 36px; padding: 0 8px; border-bottom: 1px solid var(--border); }
 .bulk .check-row { min-height: 36px; font-size: 13px; }
 .bulk .del-sel { height: 32px; padding: 0 10px; font-size: 13px; color: var(--destructive); }
@@ -835,7 +835,7 @@ function bulkBar(m) {
   state.checked = new Set([...state.checked].filter(id => ids.has(id)));
   const n = state.checked.size, all = n === m.images.length;
   return `<div class="bulk">
-    <label class="check-row"><input class="ck" type="checkbox" id="ckAll"${all ? ' checked' : ''} data-some="${n && !all ? 1 : ''}">${n ? `${n}장 선택됨` : '전체 선택'}</label>
+    <label class="check-row"><input class="img-ck" type="checkbox" id="ckAll"${all ? ' checked' : ''} data-some="${n && !all ? 1 : ''}">${n ? `${n}장 선택됨` : '전체 선택'}</label>
     <button class="btn btn-ghost del-sel" type="button" id="delSel"${n ? '' : ' disabled'}>선택 삭제</button>
   </div>`;
 }
@@ -845,7 +845,7 @@ function row(img) {
   const status = img.pin ? (img.auto ? '✓ 자동으로 찍힘' : '✓ 직접 찍음') : m.source === 'naver' && !img.gps && !img.ll ? '촬영 위치 없음' : '위치 없음';
   const ck = state.checked.has(img.id);
   return `<li class="row${ck ? ' checked' : ''}"${sel ? ' aria-current="true"' : ''}>
-    <input class="ck" type="checkbox" data-ck="${img.id}"${ck ? ' checked' : ''} aria-label="${esc(img.name)} 선택">
+    <input class="img-ck" type="checkbox" data-ck="${img.id}"${ck ? ' checked' : ''} aria-label="${esc(img.name)} 선택">
     <span class="row-th" style="background:${img.url ? `url('${img.url}') center/cover` : `linear-gradient(180deg,${img.c[0]} 0 55%,${img.c[1]} 55%)`}" aria-hidden="true"><b>${n}</b></span>
     <span class="row-main"><span class="t-sm-sb row-name">${esc(img.name)}</span><span class="t-xs ${img.pin ? 'ok-text' : 'muted'}">${status}</span></span>
     <button class="btn ${sel ? 'btn-primary' : 'btn-outline'} row-btn" type="button" data-sel="${img.id}" aria-pressed="${sel}" aria-label="${esc(img.name)} 위치 ${sel ? '고르는 중, 취소' : img.pin ? '바꾸기' : '찍기'}">${sel ? '고르는 중' : img.pin ? '바꾸기' : '찍기'}</button>

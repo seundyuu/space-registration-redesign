@@ -415,6 +415,8 @@ tbody th { font-weight: 500; }
 /* 하단 액션바 */
 .actionbar { position: sticky; bottom: 0; background: var(--background); border-top: 1px solid var(--border); padding: 12px 32px; display: flex; align-items: center; gap: 12px; }
 .actionbar .msg { flex: 1; color: var(--muted-foreground); }
+/* 1단계 데스크톱: 폼이 왼쪽 714px만 쓰므로 '다음'을 화면 구석 대신 폼 오른쪽 끝선 아래에 둔다 */
+@media (min-width: 901px) { .actionbar.ab-form { padding-right: max(32px, calc(100% - 32px - var(--form-w, 714px))); } }
 
 /* shadcn AlertDialog: max-w-lg rounded-lg border p-6 shadow-lg, overlay bg-black/50 */
 dialog { border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 24px; width: min(512px, calc(100% - 32px)); box-shadow: 0 10px 15px -3px rgba(0,0,0,.1), 0 4px 6px -4px rgba(0,0,0,.1); color: var(--foreground); }
@@ -969,6 +971,7 @@ function renderBar() {
   const m = blocker();
   $('#nextBtn').setAttribute('aria-disabled', (state.step === 0 || (state.step === 2 && noImages())) && !!m);
   $('#barMsg').textContent = m;
+  $('.actionbar').classList.toggle('ab-form', state.step === 0);
 }
 // 단계마다 브라우저 기록을 남겨, 브라우저 뒤로가기가 페이지를 떠나지 않고 이전 단계로 가게 한다
 let fromPop = false;

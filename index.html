@@ -220,6 +220,12 @@ fieldset { border: 0; margin: 0; padding: 0; min-width: 0; }
 .row-gps { padding: 0; border: 0; background: none; font: inherit; font-weight: 500; color: var(--muted-foreground); text-decoration: underline; text-underline-offset: 3px; cursor: pointer; white-space: nowrap; }
 .row-gps:hover { color: var(--foreground); }
 .row-btn { height: 36px; padding: 0 12px; flex: none; }
+/* 올리는 중: 썸네일을 어둡게 덮고 가운데 진행 링 */
+.row-up { position: absolute; inset: 0; border-radius: inherit; background: rgba(10,10,10,.45); }
+.row-up::after { content: ""; position: absolute; left: 50%; top: 50%; width: 22px; height: 22px; margin: -11px 0 0 -11px; border-radius: 50%;
+  background: conic-gradient(#fff calc(var(--p, 0) * 1%), rgba(255,255,255,.3) 0);
+  -webkit-mask: radial-gradient(farthest-side, transparent calc(100% - 3px), #000 calc(100% - 2.5px)); mask: radial-gradient(farthest-side, transparent calc(100% - 3px), #000 calc(100% - 2.5px)); }
+.up-sum { font-weight: 600; color: var(--foreground); font-variant-numeric: tabular-nums; }
 .row-del { color: var(--muted-foreground); }
 .row-del:hover { color: var(--destructive); }
 .group-h { margin: 8px 0 0; }
@@ -499,6 +505,7 @@ dialog p { margin: 0 0 16px; color: var(--muted-foreground); }
     <div class="stepform body" id="view"></div>
     <div class="actionbar">
       <span class="msg t-sm" id="barMsg" aria-live="polite"></span>
+      <button class="btn btn-outline btn-flat btn-lg" type="button" id="prevBtn" hidden>이전</button>
       <button class="btn btn-primary btn-lg" type="button" id="nextBtn">다음</button>
     </div>
   </main>
@@ -873,7 +880,7 @@ function workspace(m) {
       <p class="sr-only" id="crossPos" aria-live="polite">${s ? (isReal(m) ? '방향키로 지도를 옮겨 가운데 십자선에 맞추고 Enter로 찍어요.' : `가로 ${Math.round(c.x)}%, 세로 ${Math.round(c.y)}%`) : ''}</p>
     </div>
     <div class="ws-list${m.images.length ? '' : ' is-empty'}" aria-labelledby="imgH">
-      ${m.images.length ? `<p class="t-xs ${s ? 'sel-guide' : todo.length ? 'muted' : 'ok-text'}" id="wsGuide">${guide(m)}</p>
+      ${m.images.length ? `${uploading(m) ? `<p class="up-sum t-xs" id="upSum" role="status">${upSum(m)}</p>` : ''}<p class="t-xs ${s ? 'sel-guide' : todo.length ? 'muted' : 'ok-text'}" id="wsGuide">${guide(m)}</p>
         ${todo.length ? `<h4 class="group-h">위치를 찍어야 해요 · ${todo.length}</h4><ul class="rows">${todo.map(row).join('')}</ul>` : ''}
         ${ok.length ? `<h4 class="group-h">위치가 찍힌 사진 · ${ok.length}</h4><ul class="rows">${ok.map(row).join('')}</ul>` : ''}`
       : `<div class="drop img-empty" data-drop="img">
@@ -908,10 +915,11 @@ function row(img) {
   const ck = state.checked.has(img.id), coach = m.coach === img.id && !sel;
   // 직접 옮긴 핀인데 촬영 위치(GPS)가 있으면, 상태 줄 끝에서 이 사진만 GPS 위치로 되돌린다
   const canGps = m.source === 'naver' && img.pin && !img.auto && (img.gps || img.ll);
+  const up = img.up != null;
   return `<li class="row${ck ? ' checked' : ''}${coach ? ' coach' : ''}"${sel ? ' aria-current="true"' : ''}>
     <input class="img-ck" type="checkbox" data-ck="${img.id}"${ck ? ' checked' : ''} aria-label="${esc(img.name)} 선택">
-    <span class="row-th" style="background:${img.url ? `url('${img.url}') center/cover` : `linear-gradient(180deg,${img.c[0]} 0 55%,${img.c[1]} 55%)`}" aria-hidden="true"><b>${n}</b></span>
-    <span class="row-main"><span class="t-sm-sb row-name">${esc(img.name)}</span><span class="t-xs ${img.pin ? 'ok-text' : 'muted'}${canGps ? ' row-st' : ''}">${status}${canGps ? `<button class="row-gps" type="button" data-gps="${img.id}" aria-label="${esc(img.name)} GPS 위치로 되돌리기">GPS로 되돌리기</button>` : ''}</span>${coach ? `<span class="coach-tip t-xs">지도에서 ${n}번 위치가 맞는지 확인해 보세요</span>` : ''}</span>
+    <span class="row-th" style="background:${img.url ? `url('${img.url}') center/cover` : `linear-gradient(180deg,${img.c[0]} 0 55%,${img.c[1]} 55%)`}" aria-hidden="true"><b>${n}</b>${up ? `<i class="row-up" data-up-ring="${img.id}" style="--p:${img.up}"></i>` : ''}</span>
+    <span class="row-main"><span class="t-sm-sb row-name">${esc(img.name)}</span>${up ? `<span class="t-xs muted" data-up-txt="${img.id}">올리는 중 ${Math.round(img.up)}%</span>` : `<span class="t-xs ${img.pin ? 'ok-text' : 'muted'}${canGps ? ' row-st' : ''}">${status}${canGps ? `<button class="row-gps" type="button" data-gps="${img.id}" aria-label="${esc(img.name)} GPS 위치로 되돌리기">GPS로 되돌리기</button>` : ''}</span>`}${coach ? `<span class="coach-tip t-xs">지도에서 ${n}번 위치가 맞는지 확인해 보세요</span>` : ''}</span>
     <button class="btn ${sel ? 'btn-primary' : 'btn-outline'} row-btn${!sel && !img.pin ? ' todo' : ''}" type="button" data-sel="${img.id}" aria-pressed="${sel}" aria-label="${esc(img.name)} 위치 ${sel ? '고르는 중, 취소' : img.pin ? '바꾸기' : '찍기'}">${sel ? '고르는 중' : img.pin ? '바꾸기' : '찍기'}</button>
     <button class="btn btn-ghost icon-btn row-del" type="button" data-del="${img.id}" aria-label="${esc(img.name)} 삭제"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6"/></svg></button>
   </li>`;
@@ -959,6 +967,7 @@ function blocker() {
     if (needsName() && !named(m)) return '방문자에게 보일 지도 이름을 붙여주세요.';
     if (!m.map) return m.source === 'upload' ? '평면도나 안내도를 올려주세요.' : '지도를 어떻게 만들지 골라주세요.';
     if (!m.images.length) return '360이미지를 추가해주세요.';
+    if (uploading(m)) return '360이미지를 올리는 중이에요. 다 올라가면 다음으로 넘어갈 수 있어요.';
     const u = m.images.length - placed(m);
     if (u) return `위치를 안 찍은 사진이 ${u}장 있어요. 공간을 만든 뒤 내 공간의 ‘편집’에서 찍을 수 있어요.`;
   }
@@ -969,9 +978,11 @@ function blocker() {
 function renderBar() {
   $('#nextBtn').textContent = state.step === 2 ? (state.vis === 'public' ? '만들고 공개하기' : '공간 만들기') : '다음';
   const m = blocker();
-  $('#nextBtn').setAttribute('aria-disabled', (state.step === 0 || (state.step === 2 && noImages())) && !!m);
+  $('#nextBtn').setAttribute('aria-disabled', (state.step === 0 || (state.step === 1 && uploading(cur())) || (state.step === 2 && noImages())) && !!m);
   $('#barMsg').textContent = m;
   $('.actionbar').classList.toggle('ab-form', state.step === 0);
+  // 되돌아가기를 '다음' 바로 옆에 — 왼쪽 위 화살표까지 손이 가지 않게(2·3단계만)
+  $('#prevBtn').hidden = state.step === 0;
 }
 // 단계마다 브라우저 기록을 남겨, 브라우저 뒤로가기가 페이지를 떠나지 않고 이전 단계로 가게 한다
 let fromPop = false;
@@ -1122,6 +1133,7 @@ document.addEventListener('click', e => {
   if (t.id === 'addImg') { $('#imgFile').click(); return; }
   if (t.id === 'demoImg') {
     for (let k = 0; k < 3; k++) { const n = m.images.length; m.images.push({ id: uid++, name: NAMES[n % NAMES.length] + (n >= NAMES.length ? ' ' + (Math.floor(n / NAMES.length) + 1) : ''), pin: null, c: SKY[n % SKY.length], url: `assets/pano/${DEMO_IMG[n % DEMO_IMG.length]}-s.jpg`, gps: GPS[n % GPS.length], ll: DEMO_LL[DEMO_IMG[n % DEMO_IMG.length]] }); }
+    simUpload(m, m.images.slice(-3));
     const k = autoPin(m); coachFirst(m); render();
     toast(k ? `예시 사진 3장을 넣었어요. ${k}장은 촬영 위치로 찍혔어요` : '예시 사진 3장을 넣었어요'); $('#addImg').focus(); return;
   }
@@ -1220,6 +1232,32 @@ function pinLL(lat, lng) {
   const nx = m.images.find(i => !i.pin); state.sel = nx ? nx.id : null;
   render(); toast(`‘${img.name}’ 위치를 찍었어요${nx ? ` · 다음은 ‘${nx.name}’` : ''}`); $('#plan')?.focus();
 }
+// 업로드 진행(시안): 360이미지는 장당 수십 MB라 실제로는 몇 초씩 걸린다. 사진마다 진행 링과 %를, 목록 위엔 'N장 중 M장'을 보여준다.
+// 위치 찍기는 올리는 중에도 할 수 있고, '다음'만 다 올라갈 때까지 막는다. 실제 개발에선 업로드 API의 진행률로 바꾼다
+const uploading = m => !!m && m.images.some(i => i.up != null);
+function upSum(m) { const all = m.images.filter(i => i.up != null || i.upDone), d = all.filter(i => i.upDone).length; return `360이미지 올리는 중 · ${all.length}장 중 ${d}장 완료`; }
+function simUpload(m, list) {
+  list.forEach(img => { img.up = 0; img.upDone = false; img.upV = 4 + Math.random() * 6; });
+  const iv = setInterval(() => {
+    let done = false;
+    list.forEach(img => {
+      if (img.up == null || !m.images.includes(img)) return;
+      img.up = Math.min(100, img.up + img.upV * (0.6 + Math.random() * 0.8));
+      if (img.up >= 100) { img.up = null; img.upDone = true; done = true; return; }
+      const r = $(`[data-up-ring="${img.id}"]`), tx = $(`[data-up-txt="${img.id}"]`);
+      if (r) r.style.setProperty('--p', img.up);
+      if (tx) tx.textContent = `올리는 중 ${Math.round(img.up)}%`;
+    });
+    const left = list.some(i => i.up != null && m.images.includes(i));
+    if (!left) { clearInterval(iv); m.images.forEach(i => delete i.upDone); }
+    // 한 장이 끝날 때만 다시 그린다(포커스는 그대로)
+    if (done || !left) {
+      const a = document.activeElement, key = a?.id ? '#' + a.id : a?.dataset?.sel ? `[data-sel="${a.dataset.sel}"]` : null;
+      render(); if (key) $(key)?.focus();
+      if (!left && list.some(i => m.images.includes(i))) toast('360이미지를 다 올렸어요');
+    } else { const su = $('#upSum'); if (su) su.textContent = upSum(m); }
+  }, 160);
+}
 // 실제 파일: 360이미지는 EXIF GPS를 읽고, 평면도는 내 컴퓨터 이미지를 그대로 보여준다
 async function addFiles(files) {
   const m = cur(), imgs = files.filter(f => /^image\/(jpeg|png)$/.test(f.type));
@@ -1231,6 +1269,7 @@ async function addFiles(files) {
     m.images.push({ id: uid++, name: f.name.replace(/\.[^.]+$/, ''), url: URL.createObjectURL(f), pin: null, gps: null, ll });
   }
   const withGps = imgs.length && m.images.slice(-imgs.length).filter(i => i.ll).length;
+  simUpload(m, m.images.slice(-imgs.length));
   const k = autoPin(m); coachFirst(m); render(); $('#addImg')?.focus();
   toast(m.source === 'naver'
     ? (k ? `${imgs.length}장을 추가했어요. ${k}장은 촬영 위치로 찍혔어요` : `${imgs.length}장을 추가했어요. 사진에 촬영 위치가 없어서 위치를 직접 찍어주세요`)
@@ -1298,12 +1337,14 @@ $('#dlgCancel').onclick = () => $('#dlg').close();
 $('#dlgOk').onclick = () => { back = null; $('#dlg').close(); onOk?.(); };
 $('#dlg').addEventListener('close', () => back?.focus());
 
+$('#prevBtn').onclick = () => go(state.step - 1);
 $('#nextBtn').onclick = () => {
   if (state.step === 0 && blocker()) { state.touched = true; render(); (!state.name.trim() ? $('#nameInput') : $('input[name="scale"]')).focus(); return; }
   if (state.step === 1 && needsName()) {
     const i = state.maps.findIndex(m => !named(m));
     if (i >= 0) { state.nameTouched = true; openMap(i, '#mapName'); toast('방문자에게 보일 지도 이름을 붙여주세요'); return; }
   }
+  if (state.step === 1 && uploading(cur())) { toast('360이미지를 다 올린 뒤에 넘어갈 수 있어요'); return; }
   if (state.step === 2 && noImages()) { toast('360이미지를 1장 이상 추가해주세요'); return; }
   if (state.step === 2) { location.replace('edit.html?new=1&name=' + encodeURIComponent(state.name)); return; }
   go(state.step + 1);
